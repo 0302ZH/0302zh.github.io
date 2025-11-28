@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>精准投注计算器（多开奖号码版）</title>
+    <style>
+        /* 保持原有样式不变 */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', sans-serif;
+            background: #f5f5f5;
+            padding: 16px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            padding: 16px;
+            background: #2d8cf0;
+            color: white;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        .user-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .user-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        input[type="text"], input[type="number"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 12px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            font-size: 16px;
+            resize: vertical;
+            background: #fafafa;
+        }
+        button {
+            padding: 14px;
+            margin: 10px 0;
+            background: #2d8cf0;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button.back {
+            background: #666;
+        }
+        button.delete {
+            background: #f53f3f;
+        }
+        .result-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .section-title {
+            font-weight: bold;
+            color: #2d8cf0;
+            margin: 12px 0 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px dashed #eee;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 15px;
+        }
+        th, td {
+            padding: 8px 6px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th { background: #f5f7fa; color: #555; }
+        .win { color: #f53f3f; font-weight: bold; }
+        .total {
+            font-weight: bold;
+            color: #2d8cf0;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f8ff;
+            border-radius: 8px;
+        }
+        #results-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin: 14px 0;
+            flex-wrap: wrap;
+        }
+        .action-buttons button {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .debug-info {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+            padding: 5px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        
+        .bet-type {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        .hongkong { background: #ffebee; color: #e53935; }
+        .macau { background: #e3f2fd; color: #1976d2; }
+        .old-macau { background: #e8f5e8; color: #2e7d32; }
+        .normal { background: #f3e5f5; color: #8e24aa; }
+        
+        .winning-inputs {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .winning-group {
+            margin-bottom: 12px;
+        }
+        .winning-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            color: #555;
+        }
+        .winning-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .winning-input-row input {
+            flex: 1;
+        }
+        .winning-type {
+            min-width: 80px;
+            padding: 10px;
+            background: #f0f8ff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .hongkong-bg { background: #ffebee; border-color: #e53935; }
+        .macau-bg { background: #e3f2fd; border-color: #1976d2; }
+        .old-macau-bg { background: #e8f5e8; border-color: #2e7d32; }
+        
+        .split-info {
+            background: #fff8e1;
+            color: #e65100;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        
+        .history-section {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .history-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #2d8cf0;
+        }
+        
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .history-time {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .history-numbers {
+            font-weight: bold;
+            color: #2d8cf0;
+            margin-bottom: 8px;
+        }
+        
+        .history-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        
+        .history-actions button {
+            padding: 6px 12px;
+            font-size: 12px;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2>🎯 精准投注计算器（多开奖号码版）</h2>
+    <p>✅ 支持多开奖号码｜自动识别投注类型｜普通投注默认按新澳计算</p>
+</div>
+
+<div id="users-container">
+    <div class="user-card" id="user-1">
+        <div class="user-header">
+            <input type="text" id="name-1" placeholder="输入用户名" />
+        </div>
+        <textarea id="bets-1" placeholder="请输入您的投注内容，例如：
+包3-5-7尾各15米新
+0123456789尾各数3米新
+包0、8尾各50米07-43-23-35-47各30米新
+鼠龙猴各15米蛇各10米旧
+红蓝各数3米新
+双各数3米新澳门"></textarea>
+    </div>
+</div>
+
+<div class="winning-inputs">
+    <div class="winning-group">
+        <label>🎲 开奖号码设置（1-49）：</label>
+        <div class="winning-input-row">
+            <div class="winning-type macau-bg">新澳</div>
+            <input type="number" id="winning-macau" min="1" max="49" placeholder="请输入新澳开奖号码" />
+        </div>
+        <div class="winning-input-row">
+            <div class="winning-type old-macau-bg">旧澳</div>
+            <input type="number" id="winning-old-macau" min="1" max="49" placeholder="请输入旧澳开奖号码" />
+        </div>
+        <div class="winning-input-row">
+            <div class="winning-type hongkong-bg">香港</div>
+            <input type="number" id="winning-hongkong" min="1" max="49" placeholder="请输入香港开奖号码" />
+        </div>
+    </div>
+    <div style="font-size: 14px; color: #666; margin-top: 8px;">
+        💡 提示：普通投注（未指定类型）默认按新澳计算中奖
+    </div>
+</div>
+
+<div class="action-buttons">
+    <button onclick="addUser()">➕ 添加用户</button>
+    <button onclick="showResults()">🏆 中奖结果</button>
+    <button onclick="testSplit()">🧪 测试拆分</button>
+    <button onclick="saveRecord()">💾 保存记录</button>
+    <button onclick="showHistory()">📚 历史记录</button>
+</div>
+
+<div id="results-container">
+    <div class="header">
+        <h2>🏆 中奖结果</h2>
+        <p id="win-display-all">开奖号码：新澳 ? | 旧澳 ? | 香港 ?</p>
+    </div>
+    <p style="text-align:center; color:#999; margin-bottom:16px;" id="time-display"></p>
+    <div id="results-inner"></div>
+    <button onclick="hideResults()" class="back">⬅️ 隐藏结果</button>
+</div>
+
+<div id="history-container" class="history-section" style="display: none;">
+    <div class="header">
+        <h2>📚 历史记录</h2>
+        <p>保存的中奖记录</p>
+    </div>
+    <div id="history-list"></div>
+    <button onclick="hideHistory()" class="back">⬅️ 返回</button>
+</div>
+
+<script>
+// 尾数映射（0-9尾）
+const TAIL = {
+    0: [10, 20, 30, 40],
+    1: [1, 11, 21, 31, 41],
+    2: [2, 12, 22, 32, 42],
+    3: [3, 13, 23, 33, 43],
+    4: [4, 14, 24, 34, 44],
+    5: [5, 15, 25, 35, 45],
+    6: [6, 16, 26, 36, 46],
+    7: [7, 17, 27, 37, 47],
+    8: [8, 18, 28, 38, 48],
+    9: [9, 19, 29, 39, 49]
+};
+
+// 修正后的生肖映射（根据用户提供的2025年生肖49码对照表）
+const ZODIAC = {
+    兔: [3, 15, 27, 39],
+    龙: [2, 14, 26, 38],
+    蛇: [1, 13, 25, 37, 49],
+    马: [12, 24, 36, 48],
+    羊: [11, 23, 35, 47],
+    猴: [10, 22, 34, 46],
+    鸡: [9, 21, 33, 45],
+    狗: [8, 20, 32, 44],
+    猪: [7, 19, 31, 43],
+    鼠: [6, 18, 30, 42],
+    牛: [5, 17, 29, 41],
+    虎: [4, 16, 28, 40]
+};
+
+// 红蓝绿波映射
+const COLOR_WAVE = {
+    红波: [1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46],
+    蓝波: [3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48],
+    绿波: [5, 6, 11, 16, 17, 21, 22, 27, 28, 32, 33, 38, 39, 43, 44, 49]
+};
+
+// 单双映射
+const PARITY = {
+    单: [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49],
+    双: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48]
+};
+
+// 中文数字映射
+const CHINESE_NUMBERS = {
+    '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+    '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
+    '两': 2, '俩': 2
+};
+
+let userCount = 1;
+let currentResults = null;
+
+// 初始化历史记录
+function initHistory() {
+    if (!localStorage.getItem('bettingHistory')) {
+        localStorage.setItem('bettingHistory', JSON.stringify([]));
+    }
+}
+
+// 获取历史记录
+function getHistory() {
+    return JSON.parse(localStorage.getItem('bettingHistory') || '[]');
+}
+
+// 保存历史记录
+function saveHistory(history) {
+    localStorage.setItem('bettingHistory', JSON.stringify(history));
+}
+
+// 保存当前记录
+function saveRecord() {
+    if (!currentResults) {
+        alert('请先计算中奖结果！');
+        return;
+    }
+    
+    const history = getHistory();
+    const record = {
+        id: Date.now(),
+        timestamp: new Date().toLocaleString(),
+        winningNumbers: currentResults.winningNumbers,
+        userData: currentResults.userData,
+        totals: currentResults.totals
+    };
+    
+    history.unshift(record); // 添加到开头
+    saveHistory(history);
+    alert('记录保存成功！');
+}
+
+// 删除记录
+function deleteRecord(id) {
+    if (!confirm('确定要删除这条记录吗？')) {
+        return;
+    }
+    
+    const history = getHistory();
+    const updatedHistory = history.filter(record => record.id !== id);
+    saveHistory(updatedHistory);
+    showHistory(); // 刷新显示
+}
+
+// 显示历史记录
+function showHistory() {
+    const history = getHistory();
+    const container = document.getElementById('history-container');
+    const list = document.getElementById('history-list');
+    
+    if (history.length === 0) {
+        list.innerHTML = '<p style="text-align:center; color:#999; padding:20px;">暂无历史记录</p>';
+    } else {
+        list.innerHTML = history.map(record => `
+            <div class="history-item">
+                <div class="history-header">
+                    <strong>记录 #${record.id}</strong>
+                    <span class="history-time">${record.timestamp}</span>
+                </div>
+                <div class="history-numbers">
+                    ${getWinningDisplay(record.winningNumbers)}
+                </div>
+                <div>
+                    <strong>用户数量:</strong> ${record.userData.length} 人<br>
+                    <strong>总投入:</strong> ${record.totals.totalCost} 元<br>
+                    <strong>总中奖:</strong> ${record.totals.totalWin} 元<br>
+                    <strong>总利润:</strong> <span class="${record.totals.totalProfit >= 0 ? 'win' : ''}">${record.totals.totalProfit >= 0 ? '+' : ''}${record.totals.totalProfit}</span> 元
+                </div>
+                <div class="history-actions">
+                    <button onclick="loadRecord(${record.id})" style="background: #19be6b;">📊 查看详情</button>
+                    <button onclick="deleteRecord(${record.id})" class="delete">🗑️ 删除</button>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    document.getElementById('results-container').style.display = 'none';
+    container.style.display = 'block';
+}
+
+// 加载记录详情
+function loadRecord(id) {
+    const history = getHistory();
+    const record = history.find(r => r.id === id);
+    
+    if (!record) {
+        alert('记录不存在！');
+        return;
+    }
+    
+    // 填充开奖号码
+    document.getElementById('winning-macau').value = record.winningNumbers.macau || '';
+    document.getElementById('winning-old-macau').value = record.winningNumbers.oldMacau || '';
+    document.getElementById('winning-hongkong').value = record.winningNumbers.hongkong || '';
+    
+    // 填充用户数据
+    const container = document.getElementById('users-container');
+    container.innerHTML = '';
+    
+    record.userData.forEach((user, index) => {
+        const userCard = document.createElement('div');
+        userCard.className = 'user-card';
+        userCard.id = `user-${index + 1}`;
+        userCard.innerHTML = `
+            <div class="user-header">
+                <input type="text" id="name-${index + 1}" value="${user.name}" placeholder="输入用户名" />
+            </div>
+            <textarea id="bets-${index + 1}" placeholder="输入投注内容">${user.bets}</textarea>
+        `;
+        container.appendChild(userCard);
+    });
+    
+    userCount = record.userData.length;
+    
+    hideHistory();
+    showResults();
+}
+
+// 隐藏历史记录
+function hideHistory() {
+    document.getElementById('history-container').style.display = 'none';
+}
+
+function addUser() {
+    userCount++;
+    const container = document.getElementById('users-container');
+    const newUserCard = document.createElement('div');
+    newUserCard.className = 'user-card';
+    newUserCard.id = `user-${userCount}`;
+    newUserCard.innerHTML = `
+        <div class="user-header">
+            <input type="text" id="name-${userCount}" placeholder="输入用户名" />
+        </div>
+        <textarea id="bets-${userCount}" placeholder="输入投注内容"></textarea>
+    `;
+    container.appendChild(newUserCard);
+}
+
+// 根据号码返回 生肖+数字，例如 "兔10"
+function getZodiacLabel(num) {
+    for (const [zodiac, nums] of Object.entries(ZODIAC)) {
+        if (nums.includes(num)) {
+            return `${zodiac}${num}`;
+        }
+    }
+    return num.toString();
+}
+
+// 智能断句：改进的拆分逻辑 - 修复复杂情况
+function splitBetsByAmount(text) {
+    const lines = [];
+    const rawLines = text.split('\n').filter(line => line.trim());
+    
+    for (const rawLine of rawLines) {
+        const cleanLine = rawLine.trim();
+        if (!cleanLine) continue;
+        
+        console.log("处理行:", cleanLine);
+        
+        // 改进的拆分逻辑：按金额标记拆分
+        const segments = [];
+        
+        // 使用正则表达式查找所有金额标记 - 改进：支持以点号开头的金额
+        const amountMatches = [...cleanLine.matchAll(/(\.*各(?:数)?\s*[\d一二三四五六七八九十两俩]+\s*(?:米|元)?)/g)];
+        
+        console.log("找到金额标记:", amountMatches);
+        
+        if (amountMatches.length === 0) {
+            // 如果没有金额标记，整行作为一个投注
+            segments.push(cleanLine);
+        } else {
+            // 按金额标记拆分
+            let lastIndex = 0;
+            amountMatches.forEach((match, index) => {
+                const matchIndex = match.index;
+                const matchText = match[0];
+                
+                console.log(`处理匹配 ${index}: 位置=${matchIndex}, 文本=${matchText}`);
+                
+                // 获取从上一个匹配到当前匹配之间的内容
+                if (matchIndex > lastIndex) {
+                    const segment = cleanLine.substring(lastIndex, matchIndex + matchText.length).trim();
+                    if (segment) {
+                        segments.push(segment);
+                        console.log(`添加段落到位置 ${matchIndex + matchText.length}: ${segment}`);
+                    }
+                } else if (matchIndex === 0) {
+                    // 如果匹配从行首开始，直接添加
+                    const segment = cleanLine.substring(0, matchText.length).trim();
+                    if (segment) {
+                        segments.push(segment);
+                        console.log(`添加行首段落: ${segment}`);
+                    }
+                }
+                lastIndex = matchIndex + matchText.length;
+                
+                // 如果是最后一个匹配，添加剩余内容
+                if (index === amountMatches.length - 1 && lastIndex < cleanLine.length) {
+                    const remaining = cleanLine.substring(lastIndex).trim();
+                    if (remaining) {
+                        console.log(`添加剩余内容: ${remaining}`);
+                        // 将剩余内容附加到最后一个段落的末尾
+                        if (segments.length > 0) {
+                            segments[segments.length - 1] += ' ' + remaining;
+                            console.log(`附加到最后一个段落: ${segments[segments.length - 1]}`);
+                        } else {
+                            segments.push(remaining);
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 处理拆分后的段落
+        segments.forEach(segment => {
+            if (segment.trim()) {
+                lines.push(segment.trim());
+                console.log("最终添加行:", segment.trim());
+            }
+        });
+    }
+    
+    console.log("最终拆分结果:", lines);
+    return lines;
+}
+
+// 判断投注类型 - 添加旧澳门支持
+function getBetType(line) {
+    const clean = line.trim();
+    if (/香港/.test(clean)) return 'hongkong';
+    if (/澳门|新澳|新/.test(clean)) return 'macau';
+    if (/旧/.test(clean)) return 'old-macau';
+    if (/^新\s*[.\s]?\s*\d/.test(clean)) return 'macau';
+    if (/各(?:数)?\s*\d+\s*(?:米|元)?\s+新\s+[^\d]/.test(clean)) return 'macau';
+    if (/各(?:数)?\s*\d+\s*(?:米|元)?\s+旧\s+[^\d]/.test(clean)) return 'old-macau';
+    return 'normal';
+}
+
+// 获取投注类型标签 - 添加旧澳门样式
+function getBetTypeLabel(betType) {
+    switch(betType) {
+        case 'hongkong': return '<span class="bet-type hongkong">香港</span>';
+        case 'macau': return '<span class="bet-type macau">澳门</span>';
+        case 'old-macau': return '<span class="bet-type old-macau">旧澳门</span>';
+        default: return '<span class="bet-type normal">普通</span>';
+    }
+}
+
+// 提取金额 - 完全重写，支持各种复杂情况
+function extractAmount(line) {
+    console.log("解析金额:", line);
+    
+    // 1. 首先尝试匹配标准的"各X米"格式（包含中文数字）
+    let match = line.match(/各(?:数)?\s*(\d+)\s*(?:米|元)/i);
+    if (match) {
+        console.log("匹配标准格式:", match[1]);
+        return parseInt(match[1]);
+    }
+    
+    // 2. 尝试匹配中文数字
+    match = line.match(/各(?:数)?\s*([一二三四五六七八九十两俩]+)\s*(?:米|元)/);
+    if (match) {
+        const chineseNum = match[1];
+        console.log("匹配中文数字:", chineseNum, "->", CHINESE_NUMBERS[chineseNum]);
+        return CHINESE_NUMBERS[chineseNum] || 1;
+    }
+    
+    // 3. 修复：匹配"各X"格式（没有米字）
+    match = line.match(/各(?:数)?\s*(\d+)(?:\s|$|新|旧|香港|澳门)/i);
+    if (match) {
+        console.log("匹配无米格式:", match[1]);
+        return parseInt(match[1]);
+    }
+    
+    // 4. 修复：匹配连字符分隔的金额，如"21-10米"中的10
+    match = line.match(/(\d+)\s*[-–—]\s*(\d+)\s*(?:米|元)/);
+    if (match) {
+        console.log("匹配连字符:", match[2]);
+        return parseInt(match[2]);
+    }
+    
+    // 5. 修复：匹配点号分隔的金额，如"08.3米"中的3，支持多个点号
+    match = line.match(/(?:\.\d+)+\s*\.\s*(\d+)\s*(?:米|元)/);
+    if (match) {
+        console.log("匹配点号分隔:", match[1]);
+        return parseInt(match[1]);
+    }
+    
+    // 6. 修复：匹配"..08.3米"这种情况
+    match = line.match(/\.{2,}\s*(\d+)\.\s*(\d+)\s*(?:米|元)/);
+    if (match) {
+        console.log("匹配多点号:", match[2]);
+        return parseInt(match[2]);
+    }
+    
+    // 7. 最后尝试匹配任何数字后面跟"米"或"元"的格式
+    match = line.match(/(\d+)\s*(?:米|元)/);
+    if (match) {
+        console.log("匹配通用格式:", match[1]);
+        return parseInt(match[1]);
+    }
+    
+    // 8. 最后尝试匹配单独的数字（没有单位）
+    match = line.match(/各(?:数)?\s*(\d+)/);
+    if (match) {
+        console.log("匹配纯数字:", match[1]);
+        return parseInt(match[1]);
+    }
+    
+    console.log("未匹配到金额，使用默认值1");
+    return 1;
+}
+
+// 改进的尾数解析函数 - 修复连续数字尾号识别
+function parseTailNumbers(text) {
+    const nums = new Set();
+    
+    // 匹配包尾模式，支持多种分隔符：-、,、，、空格等
+    const tailMatch = text.match(/包\s*([\d\s\-、,，]+)\s*尾/);
+    if (tailMatch) {
+        const tailPart = tailMatch[1];
+        // 提取所有数字（支持多种分隔符和连续数字）
+        const digits = tailPart.match(/\d/g);
+        if (digits) {
+            digits.forEach(d => {
+                const digit = parseInt(d);
+                if (digit >= 0 && digit <= 9 && TAIL[digit]) {
+                    // 添加该尾数对应的所有号码
+                    TAIL[digit].forEach(n => nums.add(n));
+                }
+            });
+        }
+    }
+    
+    // 新增：匹配连续数字尾号模式，如"0123456789尾"
+    const continuousTailMatch = text.match(/(\d+)\s*尾/);
+    if (continuousTailMatch && !text.includes('包')) {
+        const digitsStr = continuousTailMatch[1];
+        // 将连续数字字符串拆分为单个数字
+        const digits = digitsStr.split('').map(d => parseInt(d));
+        digits.forEach(digit => {
+            if (digit >= 0 && digit <= 9 && TAIL[digit]) {
+                TAIL[digit].forEach(n => nums.add(n));
+            }
+        });
+    }
+    
+    return Array.from(nums);
+}
+
+// 解析号码（改进版）- 修复金额数字被误识别为生肖的问题
+function parseNumbers(text) {
+    const nums = new Set();
+    console.log("开始解析号码:", text);
+
+    // 首先提取金额，用于后续排除金额数字
+    const amount = extractAmount(text);
+    console.log("提取到的金额:", amount);
+    
+    // 改进：更精确地清理金额部分，只移除明确的金额模式
+    let cleanedText = text;
+    
+    // 只移除明确的"各X米"模式，而不是所有包含数字的模式
+    // 改进：使用更精确的替换，避免删除投注号码
+    cleanedText = cleanedText.replace(/各(?:数)?\s*[\d一二三四五六七八九十两俩]+\s*(?:米|元)?/gi, '');
+    
+    console.log("清理后的文本:", cleanedText);
+
+    // 提取数字（1-49）- 改进：使用更精确的匹配
+    const numMatches = cleanedText.match(/\b\d{1,2}\b/g);
+    if (numMatches) {
+        console.log("找到的数字:", numMatches);
+        numMatches.forEach(numStr => {
+            const n = parseInt(numStr);
+            if (n >= 1 && n <= 49) {
+                // 改进：更精确的上下文检查
+                const numIndex = text.indexOf(numStr);
+                const beforeText = text.substring(Math.max(0, numIndex - 3), numIndex);
+                const afterText = text.substring(numIndex + numStr.length, Math.min(text.length, numIndex + numStr.length + 3));
+                
+                console.log(`检查数字 ${n}: 前文="${beforeText}", 后文="${afterText}"`);
+                
+                // 只有当数字紧跟在"各"后面并且紧挨着"米"/"元"时才认为是金额
+                const isAmountContext = 
+                    (beforeText.includes('各') && beforeText.trim().endsWith('各')) &&
+                    (afterText.includes('米') || afterText.includes('元'));
+                
+                // 额外的检查：如果数字等于金额值，并且在金额上下文中，则跳过
+                const isAmountValue = (n === amount) && isAmountContext;
+                
+                if (!isAmountValue) {
+                    nums.add(n);
+                    console.log(`添加号码: ${n}`);
+                } else {
+                    console.log(`跳过金额数字: ${n}`);
+                }
+            }
+        });
+    }
+
+    // 使用改进的尾数解析函数
+    const tailNumbers = parseTailNumbers(cleanedText);
+    tailNumbers.forEach(n => {
+        nums.add(n);
+        console.log(`添加尾数号码: ${n}`);
+    });
+
+    // 生肖 - 使用修正后的生肖映射
+    const zodiacs = Object.keys(ZODIAC);
+    zodiacs.forEach(z => {
+        if (cleanedText.includes(z)) {
+            ZODIAC[z].forEach(n => {
+                // 检查这个生肖号码是否等于金额值，如果是则跳过
+                if (n !== amount) {
+                    nums.add(n);
+                    console.log(`添加生肖 ${z} 号码: ${n}`);
+                } else {
+                    console.log(`跳过金额生肖号码: ${n} (生肖: ${z})`);
+                }
+            });
+        }
+    });
+
+    // 新增：红蓝绿波解析 - 支持简写（红、蓝、绿）
+    const colorWaves = Object.keys(COLOR_WAVE);
+    
+    // 检查简写形式（红、蓝、绿）
+    if (cleanedText.includes('红')) {
+        COLOR_WAVE['红波'].forEach(n => {
+            if (n !== amount) {
+                nums.add(n);
+                console.log(`添加红波号码: ${n}`);
+            } else {
+                console.log(`跳过金额红波号码: ${n}`);
+            }
+        });
+    }
+    
+    if (cleanedText.includes('蓝')) {
+        COLOR_WAVE['蓝波'].forEach(n => {
+            if (n !== amount) {
+                nums.add(n);
+                console.log(`添加蓝波号码: ${n}`);
+            } else {
+                console.log(`跳过金额蓝波号码: ${n}`);
+            }
+        });
+    }
+    
+    if (cleanedText.includes('绿')) {
+        COLOR_WAVE['绿波'].forEach(n => {
+            if (n !== amount) {
+                nums.add(n);
+                console.log(`添加绿波号码: ${n}`);
+            } else {
+                console.log(`跳过金额绿波号码: ${n}`);
+            }
+        });
+    }
+    
+    // 检查完整形式（红波、蓝波、绿波）
+    colorWaves.forEach(color => {
+        if (cleanedText.includes(color)) {
+            COLOR_WAVE[color].forEach(n => {
+                // 检查这个波色号码是否等于金额值，如果是则跳过
+                if (n !== amount) {
+                    nums.add(n);
+                    console.log(`添加${color}号码: ${n}`);
+                } else {
+                    console.log(`跳过金额${color}号码: ${n}`);
+                }
+            });
+        }
+    });
+
+    // 新增：单双解析
+    const parities = Object.keys(PARITY);
+    parities.forEach(parity => {
+        if (cleanedText.includes(parity)) {
+            PARITY[parity].forEach(n => {
+                // 检查这个单双号码是否等于金额值，如果是则跳过
+                if (n !== amount) {
+                    nums.add(n);
+                    console.log(`添加${parity}号码: ${n}`);
+                } else {
+                    console.log(`跳过金额${parity}号码: ${n}`);
+                }
+            });
+        }
+    });
+
+    console.log("最终解析号码:", Array.from(nums));
+    return Array.from(nums);
+}
+
+// 获取所有开奖号码
+function getWinningNumbers() {
+    const winningNumbers = {};
+    
+    const macauNum = document.getElementById('winning-macau').value.trim();
+    const oldMacauNum = document.getElementById('winning-old-macau').value.trim();
+    const hongkongNum = document.getElementById('winning-hongkong').value.trim();
+    
+    if (macauNum) {
+        const num = parseInt(macauNum);
+        if (num >= 1 && num <= 49) {
+            winningNumbers.macau = num;
+        }
+    }
+    
+    if (oldMacauNum) {
+        const num = parseInt(oldMacauNum);
+        if (num >= 1 && num <= 49) {
+            winningNumbers.oldMacau = num;
+        }
+    }
+    
+    if (hongkongNum) {
+        const num = parseInt(hongkongNum);
+        if (num >= 1 && num <= 49) {
+            winningNumbers.hongkong = num;
+        }
+    }
+    
+    return winningNumbers;
+}
+
+// 检查投注是否中奖 - 修复普通投注默认按新澳计算
+function checkWin(betType, numbers, winningNumbers) {
+    switch(betType) {
+        case 'macau':
+            return winningNumbers.macau && numbers.includes(winningNumbers.macau);
+        case 'old-macau':
+            return winningNumbers.oldMacau && numbers.includes(winningNumbers.oldMacau);
+        case 'hongkong':
+            return winningNumbers.hongkong && numbers.includes(winningNumbers.hongkong);
+        case 'normal':
+            // 修复：普通投注默认按新澳计算
+            return winningNumbers.macau && numbers.includes(winningNumbers.macau);
+        default:
+            return false;
+    }
+}
+
+// 获取中奖金额
+function getWinAmount(betType, perBet, numbers, winningNumbers) {
+    let winAmount = 0;
+    
+    if (checkWin(betType, numbers, winningNumbers)) {
+        winAmount = perBet * 47;
+    }
+    
+    return winAmount;
+}
+
+// 获取开奖显示文本
+function getWinningDisplay(winningNumbers) {
+    const parts = [];
+    if (winningNumbers.macau) parts.push(`新澳 ${getZodiacLabel(winningNumbers.macau)}`);
+    if (winningNumbers.oldMacau) parts.push(`旧澳 ${getZodiacLabel(winningNumbers.oldMacau)}`);
+    if (winningNumbers.hongkong) parts.push(`香港 ${getZodiacLabel(winningNumbers.hongkong)}`);
+    return parts.join(' | ') || '无有效开奖号码';
+}
+
+// 处理新旧同时出现的投注 - 自动拆分成两个投注
+function processNewOldBets(lines) {
+    const processedLines = [];
+    
+    lines.forEach(line => {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) return;
+        
+        // 检查是否同时包含"新"和"旧"
+        if (trimmedLine.includes('新') && trimmedLine.includes('旧')) {
+            console.log("检测到新旧同时出现，自动拆分:", trimmedLine);
+            
+            // 拆分成两个投注
+            const newLine = trimmedLine.replace(/旧/g, '').trim();
+            const oldLine = trimmedLine.replace(/新/g, '').trim();
+            
+            // 添加拆分信息
+            processedLines.push({
+                line: newLine,
+                betType: 'macau',
+                originalLine: trimmedLine,
+                isSplit: true,
+                splitType: '新澳'
+            });
+            
+            processedLines.push({
+                line: oldLine,
+                betType: 'old-macau',
+                originalLine: trimmedLine,
+                isSplit: true,
+                splitType: '旧澳'
+            });
+        } else {
+            // 不拆分，正常处理
+            processedLines.push({
+                line: trimmedLine,
+                betType: null, // 稍后通过getBetType确定
+                originalLine: trimmedLine,
+                isSplit: false
+            });
+        }
+    });
+    
+    return processedLines;
+}
+
+function showResults() {
+    const winningNumbers = getWinningNumbers();
+    
+    // 检查是否有新澳开奖号码（因为普通投注依赖新澳）
+    if (!winningNumbers.macau) {
+        return alert('请至少输入新澳开奖号码！普通投注需要新澳开奖号码来计算中奖。');
+    }
+
+    const userData = [];
+    const container = document.getElementById('users-container');
+    const userCards = container.querySelectorAll('.user-card');
+
+    userCards.forEach(card => {
+        const id = card.id.replace('user-', '');
+        const name = document.getElementById(`name-${id}`)?.value.trim() || `用户${id}`;
+        const bets = document.getElementById(`bets-${id}`)?.value.trim();
+        if (bets) {
+            userData.push({ name, bets });
+        }
+    });
+
+    if (userData.length === 0) return alert('请至少输入一个用户的投注内容！');
+
+    document.getElementById('results-container').style.display = 'block';
+    document.getElementById('win-display-all').textContent = '开奖号码：' + getWinningDisplay(winningNumbers);
+    document.getElementById('time-display').textContent = '生成时间：' + new Date().toLocaleString();
+
+    const resultContainer = document.getElementById('results-inner');
+    resultContainer.innerHTML = '';
+    let totalAllCost = 0, totalAllWin = 0;
+
+    userData.forEach(user => {
+        const rawLines = user.bets.split('\n').filter(l => l.trim());
+        const lines = [];
+        rawLines.forEach(raw => {
+            lines.push(...splitBetsByAmount(raw));
+        });
+
+        // 处理新旧同时出现的投注
+        const processedLines = processNewOldBets(lines);
+
+        let allBets = [];
+        let userCost = 0, userWin = 0;
+
+        processedLines.forEach(item => {
+            const trimmedLine = item.line;
+            if (!trimmedLine) return;
+
+            const betType = item.betType !== null ? item.betType : getBetType(trimmedLine);
+            const perBet = extractAmount(trimmedLine);
+            const numbers = parseNumbers(trimmedLine);
+            if (numbers.length === 0) return;
+
+            const cost = numbers.length * perBet;
+            const winAmount = getWinAmount(betType, perBet, numbers, winningNumbers);
+            const isWin = winAmount > 0;
+
+            userCost += cost;
+            userWin += winAmount;
+
+            const betItem = { 
+                line: trimmedLine, 
+                numCount: numbers.length, 
+                perBet, 
+                cost, 
+                winAmount, 
+                isWin, 
+                multiple: 47,
+                numbers: numbers,
+                betType: betType,
+                originalLine: item.originalLine,
+                isSplit: item.isSplit,
+                splitType: item.splitType
+            };
+
+            allBets.push(betItem);
+        });
+
+        totalAllCost += userCost;
+        totalAllWin += userWin;
+        const profit = userWin - userCost;
+
+        let html = `<div class="result-card"><h3>👤 ${user.name}</h3>`;
+
+        if (allBets.length === 0) {
+            html += `<p style="color:#999;">🚫 无有效投注内容</p>`;
+        } else {
+            html += `<div class="section-title">投注详情（47倍）</div>
+            <table><tr><th>内容</th><th>号码数量</th><th>投入</th><th>中奖</th></tr>`;
+            
+            allBets.forEach(i => {
+                let lineDisplay = i.line;
+                if (i.isSplit) {
+                    lineDisplay = `<span title="原投注: ${i.originalLine}">${i.line}</span>`;
+                }
+                
+                html += `<tr>
+                    <td>${lineDisplay} ${getBetTypeLabel(i.betType)}</td>
+                    <td>${i.numCount}</td>
+                    <td>${i.cost}元</td>
+                    <td class="${i.isWin?'win':''}">${i.isWin?i.winAmount+'元':'-'}</td>
+                </tr>`;
+                
+                // 显示拆分信息
+                if (i.isSplit) {
+                    html += `<tr><td colspan="4" class="split-info">📝 自动拆分自: "${i.originalLine}" → ${i.splitType}</td></tr>`;
+                }
+                
+                // 调试信息：显示解析出的号码
+                let matchInfo = `解析号码: ${i.numbers.join(', ')} | 单注金额: ${i.perBet}米 | 类型: ${i.betType}`;
+                if (i.betType === 'normal') {
+                    matchInfo += ` | 匹配: 新澳${winningNumbers.macau}`;
+                } else if (i.betType === 'macau' && winningNumbers.macau) {
+                    matchInfo += ` | 匹配: 新澳${winningNumbers.macau}`;
+                } else if (i.betType === 'old-macau' && winningNumbers.oldMacau) {
+                    matchInfo += ` | 匹配: 旧澳${winningNumbers.oldMacau}`;
+                } else if (i.betType === 'hongkong' && winningNumbers.hongkong) {
+                    matchInfo += ` | 匹配: 香港${winningNumbers.hongkong}`;
+                }
+                html += `<tr><td colspan="4" class="debug-info">${matchInfo}</td></tr>`;
+            });
+            
+            html += `</table>`;
+            
+            html += `<div class="total">
+                💰 投入：${userCost}元 | 中奖：${userWin}元 | 净利润：<span class="${profit>=0?'win':''}">${profit>=0?'+':''}${profit}</span>元
+            </div>`;
+        }
+
+        html += `</div>`;
+        resultContainer.innerHTML += html;
+    });
+
+    const totalProfit = totalAllWin - totalAllCost;
+    resultContainer.innerHTML += `<div class="total" style="margin-top:20px;">
+        📊 全体汇总：<br>
+        总投入：${totalAllCost} 元<br>
+        总中奖：${totalAllWin} 元<br>
+        总净利润：<span class="${totalProfit>=0?'win':''}">${totalProfit>=0?'+':''}${totalProfit}</span> 元
+    </div>`;
+
+    // 保存当前结果用于记录
+    currentResults = {
+        winningNumbers,
+        userData,
+        totals: {
+            totalCost: totalAllCost,
+            totalWin: totalAllWin,
+            totalProfit: totalProfit
+        }
+    };
+}
+
+function hideResults() {
+    document.getElementById('results-container').style.display = 'none';
+}
+
+// 测试拆分功能
+function testSplit() {
+    const container = document.getElementById('users-container');
+    const userCards = container.querySelectorAll('.user-card');
+    
+    let testContent = '';
+    userCards.forEach(card => {
+        const id = card.id.replace('user-', '');
+        const bets = document.getElementById(`bets-${id}`)?.value.trim();
+        if (bets) {
+            testContent += `用户${id}:\n${bets}\n\n`;
+        }
+    });
+    
+    if (!testContent) {
+        alert('请先输入投注内容！');
+        return;
+    }
+    
+    const lines = splitBetsByAmount(testContent);
+    const processedLines = processNewOldBets(lines);
+    
+    let result = `拆分结果 (共${processedLines.length}条):\n\n`;
+    processedLines.forEach((item, index) => {
+        result += `${index+1}. ${item.line}\n`;
+        if (item.isSplit) {
+            result += `   📝 自动拆分自: "${item.originalLine}" → ${item.splitType}\n`;
+        }
+        const amount = extractAmount(item.line);
+        const numbers = parseNumbers(item.line);
+        const betType = item.betType !== null ? item.betType : getBetType(item.line);
+        result += `   金额: ${amount}米, 号码: ${numbers.join(', ')}, 类型: ${betType}\n\n`;
+    });
+    
+    alert(result);
+}
+
+// 初始化 - 修复：确保在页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    initHistory();
+});
+</script>
+
+</body>
+</html>
