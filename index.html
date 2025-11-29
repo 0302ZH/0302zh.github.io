@@ -231,6 +231,50 @@
             font-size: 12px;
             margin: 0;
         }
+        
+        /* 新增样式：用户名选择器 */
+        .name-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .name-selector button {
+            padding: 6px 12px;
+            background: #f0f8ff;
+            color: #2d8cf0;
+            border: 1px solid #2d8cf0;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 0;
+        }
+        .name-selector button:hover {
+            background: #2d8cf0;
+            color: white;
+        }
+        
+        /* 编辑历史记录样式 */
+        .edit-history-btn {
+            background: #19be6b !important;
+        }
+        
+        /* 新增样式：生肖显示 */
+        .zodiac-display {
+            background: #fff8e1;
+            color: #e65100;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-top: 8px;
+            display: inline-block;
+        }
+        
+        /* 新增样式：累计中奖投注 */
+        .total-bet-win {
+            color: #19be6b;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -244,6 +288,18 @@
     <div class="user-card" id="user-1">
         <div class="user-header">
             <input type="text" id="name-1" placeholder="输入用户名" />
+        </div>
+        <div class="name-selector">
+            <button onclick="selectName('name-1', '黄完')">黄完</button>
+            <button onclick="selectName('name-1', '黄展模')">黄展模</button>
+            <button onclick="selectName('name-1', '自己')">自己</button>
+            <button onclick="selectName('name-1', '四妹')">四妹</button>
+            <button onclick="selectName('name-1', '黄完家婆')">黄完家婆</button>
+            <button onclick="selectName('name-1', '方业')">方业</button>
+            <button onclick="selectName('name-1', '风兰')">风兰</button>
+            <button onclick="selectName('name-1', '梦思雨')">梦思雨</button>
+            <button onclick="selectName('name-1', '王锦红')">王锦红</button>
+            <button onclick="selectName('name-1', '卓义茹')">卓义茹</button>
         </div>
         <textarea id="bets-1" placeholder="请输入您的投注内容，例如：
 包3-5-7尾各15米新
@@ -356,6 +412,12 @@ const CHINESE_NUMBERS = {
 
 let userCount = 1;
 let currentResults = null;
+let editingRecordId = null; // 用于跟踪正在编辑的记录ID
+
+// 选择用户名
+function selectName(inputId, name) {
+    document.getElementById(inputId).value = name;
+}
 
 // 初始化历史记录
 function initHistory() {
@@ -383,16 +445,28 @@ function saveRecord() {
     
     const history = getHistory();
     const record = {
-        id: Date.now(),
-        timestamp: new Date().toLocaleString(),
+        id: editingRecordId || Date.now(), // 如果正在编辑，使用原ID
+        timestamp: editingRecordId ? new Date().toLocaleString() + ' (已编辑)' : new Date().toLocaleString(),
         winningNumbers: currentResults.winningNumbers,
         userData: currentResults.userData,
         totals: currentResults.totals
     };
     
-    history.unshift(record); // 添加到开头
+    if (editingRecordId) {
+        // 更新现有记录
+        const index = history.findIndex(record => record.id === editingRecordId);
+        if (index !== -1) {
+            history[index] = record;
+            alert('记录更新成功！');
+        }
+    } else {
+        // 添加新记录
+        history.unshift(record);
+        alert('记录保存成功！');
+    }
+    
     saveHistory(history);
-    alert('记录保存成功！');
+    editingRecordId = null; // 重置编辑状态
 }
 
 // 删除记录
@@ -405,6 +479,59 @@ function deleteRecord(id) {
     const updatedHistory = history.filter(record => record.id !== id);
     saveHistory(updatedHistory);
     showHistory(); // 刷新显示
+}
+
+// 编辑历史记录
+function editRecord(id) {
+    const history = getHistory();
+    const record = history.find(r => r.id === id);
+    
+    if (!record) {
+        alert('记录不存在！');
+        return;
+    }
+    
+    // 设置编辑状态
+    editingRecordId = id;
+    
+    // 填充开奖号码
+    document.getElementById('winning-macau').value = record.winningNumbers.macau || '';
+    document.getElementById('winning-old-macau').value = record.winningNumbers.oldMacau || '';
+    document.getElementById('winning-hongkong').value = record.winningNumbers.hongkong || '';
+    
+    // 填充用户数据
+    const container = document.getElementById('users-container');
+    container.innerHTML = '';
+    
+    record.userData.forEach((user, index) => {
+        const userCard = document.createElement('div');
+        userCard.className = 'user-card';
+        userCard.id = `user-${index + 1}`;
+        userCard.innerHTML = `
+            <div class="user-header">
+                <input type="text" id="name-${index + 1}" value="${user.name}" placeholder="输入用户名" />
+            </div>
+            <div class="name-selector">
+                <button onclick="selectName('name-${index + 1}', '黄完')">黄完</button>
+                <button onclick="selectName('name-${index + 1}', '黄展模')">黄展模</button>
+                <button onclick="selectName('name-${index + 1}', '自己')">自己</button>
+                <button onclick="selectName('name-${index + 1}', '四妹')">四妹</button>
+                <button onclick="selectName('name-${index + 1}', '黄完家婆')">黄完家婆</button>
+                <button onclick="selectName('name-${index + 1}', '方业')">方业</button>
+                <button onclick="selectName('name-${index + 1}', '风兰')">风兰</button>
+                <button onclick="selectName('name-${index + 1}', '梦思雨')">梦思雨</button>
+                <button onclick="selectName('name-${index + 1}', '王锦红')">王锦红</button>
+                <button onclick="selectName('name-${index + 1}', '卓义茹')">卓义茹</button>
+            </div>
+            <textarea id="bets-${index + 1}" placeholder="输入投注内容">${user.bets}</textarea>
+        `;
+        container.appendChild(userCard);
+    });
+    
+    userCount = record.userData.length;
+    
+    hideHistory();
+    showResults();
 }
 
 // 显示历史记录
@@ -433,6 +560,7 @@ function showHistory() {
                 </div>
                 <div class="history-actions">
                     <button onclick="loadRecord(${record.id})" style="background: #19be6b;">📊 查看详情</button>
+                    <button onclick="editRecord(${record.id})" class="edit-history-btn">✏️ 编辑</button>
                     <button onclick="deleteRecord(${record.id})" class="delete">🗑️ 删除</button>
                 </div>
             </div>
@@ -470,6 +598,18 @@ function loadRecord(id) {
             <div class="user-header">
                 <input type="text" id="name-${index + 1}" value="${user.name}" placeholder="输入用户名" />
             </div>
+            <div class="name-selector">
+                <button onclick="selectName('name-${index + 1}', '黄完')">黄完</button>
+                <button onclick="selectName('name-${index + 1}', '黄展模')">黄展模</button>
+                <button onclick="selectName('name-${index + 1}', '自己')">自己</button>
+                <button onclick="selectName('name-${index + 1}', '四妹')">四妹</button>
+                <button onclick="selectName('name-${index + 1}', '黄完家婆')">黄完家婆</button>
+                <button onclick="selectName('name-${index + 1}', '方业')">方业</button>
+                <button onclick="selectName('name-${index + 1}', '风兰')">风兰</button>
+                <button onclick="selectName('name-${index + 1}', '梦思雨')">梦思雨</button>
+                <button onclick="selectName('name-${index + 1}', '王锦红')">王锦红</button>
+                <button onclick="selectName('name-${index + 1}', '卓义茹')">卓义茹</button>
+            </div>
             <textarea id="bets-${index + 1}" placeholder="输入投注内容">${user.bets}</textarea>
         `;
         container.appendChild(userCard);
@@ -496,6 +636,18 @@ function addUser() {
         <div class="user-header">
             <input type="text" id="name-${userCount}" placeholder="输入用户名" />
         </div>
+        <div class="name-selector">
+            <button onclick="selectName('name-${userCount}', '黄完')">黄完</button>
+            <button onclick="selectName('name-${userCount}', '黄展模')">黄展模</button>
+            <button onclick="selectName('name-${userCount}', '自己')">自己</button>
+            <button onclick="selectName('name-${userCount}', '四妹')">四妹</button>
+            <button onclick="selectName('name-${userCount}', '黄完家婆')">黄完家婆</button>
+            <button onclick="selectName('name-${userCount}', '方业')">方业</button>
+            <button onclick="selectName('name-${userCount}', '风兰')">风兰</button>
+            <button onclick="selectName('name-${userCount}', '梦思雨')">梦思雨</button>
+            <button onclick="selectName('name-${userCount}', '王锦红')">王锦红</button>
+            <button onclick="selectName('name-${userCount}', '卓义茹')">卓义茹</button>
+        </div>
         <textarea id="bets-${userCount}" placeholder="输入投注内容"></textarea>
     `;
     container.appendChild(newUserCard);
@@ -509,6 +661,25 @@ function getZodiacLabel(num) {
         }
     }
     return num.toString();
+}
+
+// 获取生肖显示文本（例如：26（龙））
+function getZodiacDisplay(num) {
+    for (const [zodiac, nums] of Object.entries(ZODIAC)) {
+        if (nums.includes(num)) {
+            return `${num}（${zodiac}）`;
+        }
+    }
+    return num.toString();
+}
+
+// 获取今日生肖显示文本
+function getTodayZodiacDisplay(winningNumbers) {
+    const parts = [];
+    if (winningNumbers.macau) parts.push(`新澳${getZodiacDisplay(winningNumbers.macau)}`);
+    if (winningNumbers.oldMacau) parts.push(`旧澳${getZodiacDisplay(winningNumbers.oldMacau)}`);
+    if (winningNumbers.hongkong) parts.push(`香港${getZodiacDisplay(winningNumbers.hongkong)}`);
+    return parts.join(' ') || '无开奖号码';
 }
 
 // 智能断句：改进的拆分逻辑 - 修复复杂情况
@@ -1002,7 +1173,7 @@ function showResults() {
 
     const resultContainer = document.getElementById('results-inner');
     resultContainer.innerHTML = '';
-    let totalAllCost = 0, totalAllWin = 0;
+    let totalAllCost = 0, totalAllWin = 0, totalWinBetAmount = 0;
 
     userData.forEach(user => {
         const rawLines = user.bets.split('\n').filter(l => l.trim());
@@ -1015,7 +1186,7 @@ function showResults() {
         const processedLines = processNewOldBets(lines);
 
         let allBets = [];
-        let userCost = 0, userWin = 0;
+        let userCost = 0, userWin = 0, userWinBetAmount = 0;
 
         processedLines.forEach(item => {
             const trimmedLine = item.line;
@@ -1032,6 +1203,11 @@ function showResults() {
 
             userCost += cost;
             userWin += winAmount;
+            
+            // 计算累计中奖投注金额
+            if (isWin) {
+                userWinBetAmount += perBet;
+            }
 
             const betItem = { 
                 line: trimmedLine, 
@@ -1053,6 +1229,7 @@ function showResults() {
 
         totalAllCost += userCost;
         totalAllWin += userWin;
+        totalWinBetAmount += userWinBetAmount;
         const profit = userWin - userCost;
 
         let html = `<div class="result-card"><h3>👤 ${user.name}</h3>`;
@@ -1098,7 +1275,9 @@ function showResults() {
             html += `</table>`;
             
             html += `<div class="total">
-                💰 投入：${userCost}元 | 中奖：${userWin}元 | 净利润：<span class="${profit>=0?'win':''}">${profit>=0?'+':''}${profit}</span>元
+                💰 投入：${userCost}元 | 中奖：${userWin}元 | 净利润：<span class="${profit>=0?'win':''}">${profit>=0?'+':''}${profit}</span>元<br>
+                <span class="total-bet-win">累计中奖投注：${userWinBetAmount}元</span><br>
+                <span class="zodiac-display"> 今日生肖：${getTodayZodiacDisplay(winningNumbers)}</span>
             </div>`;
         }
 
@@ -1111,7 +1290,9 @@ function showResults() {
         📊 全体汇总：<br>
         总投入：${totalAllCost} 元<br>
         总中奖：${totalAllWin} 元<br>
-        总净利润：<span class="${totalProfit>=0?'win':''}">${totalProfit>=0?'+':''}${totalProfit}</span> 元
+        总净利润：<span class="${totalProfit>=0?'win':''}">${totalProfit>=0?'+':''}${totalProfit}</span> 元<br>
+        <span class="total-bet-win">累计中奖投注：${totalWinBetAmount}元</span><br>
+        <span class="zodiac-display"> 今日生肖：${getTodayZodiacDisplay(winningNumbers)}</span>
     </div>`;
 
     // 保存当前结果用于记录
@@ -1121,7 +1302,8 @@ function showResults() {
         totals: {
             totalCost: totalAllCost,
             totalWin: totalAllWin,
-            totalProfit: totalProfit
+            totalProfit: totalProfit,
+            totalWinBetAmount: totalWinBetAmount
         }
     };
 }
