@@ -275,6 +275,12 @@
             color: #19be6b;
             font-weight: bold;
         }
+        
+        /* 新增样式：金额红色显示 */
+        .money-red {
+            color: #f53f3f;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -554,9 +560,10 @@ function showHistory() {
                 </div>
                 <div>
                     <strong>用户数量:</strong> ${record.userData.length} 人<br>
-                    <strong>总投入:</strong> ${record.totals.totalCost} 元<br>
-                    <strong>总中奖:</strong> ${record.totals.totalWin} 元<br>
-                    <strong>总利润:</strong> <span class="${record.totals.totalProfit >= 0 ? 'win' : ''}">${record.totals.totalProfit >= 0 ? '+' : ''}${record.totals.totalProfit}</span> 元
+                    <strong>总投入:</strong> <span class="money-red">${record.totals.totalCost} 元</span><br>
+                    <strong>总中奖:</strong> <span class="money-red">${record.totals.totalWin} 元</span><br>
+                    <strong>总利润:</strong> <span class="${record.totals.totalProfit >= 0 ? 'money-red' : ''}">${record.totals.totalProfit >= 0 ? '+' : ''}${record.totals.totalProfit}</span> <span class="money-red">元</span><br>
+                    <strong>累计中奖投注:</strong> <span class="money-red">${record.totals.totalBetWin} 元</span>
                 </div>
                 <div class="history-actions">
                     <button onclick="loadRecord(${record.id})" style="background: #19be6b;">📊 查看详情</button>
@@ -884,16 +891,16 @@ function parseTailNumbers(text) {
     return Array.from(nums);
 }
 
-// 解析号码（改进版）- 修复金额数字被误识别为生肖的问题
+// 解析号码（修复版）- 修复生肖号码被误删除的问题
 function parseNumbers(text) {
     const nums = new Set();
     console.log("开始解析号码:", text);
 
-    // 首先提取金额，用于后续排除金额数字
+    // 首先提取金额，但不立即清理文本
     const amount = extractAmount(text);
     console.log("提取到的金额:", amount);
     
-    // 改进：更精确地清理金额部分，只移除明确的金额模式
+    // 改进：更精确地清理金额部分，只移除明确的金额模式字符串
     let cleanedText = text;
     
     // 只移除明确的"各X米"模式，而不是所有包含数字的模式
@@ -909,124 +916,43 @@ function parseNumbers(text) {
         numMatches.forEach(numStr => {
             const n = parseInt(numStr);
             if (n >= 1 && n <= 49) {
-                // 改进：更精确的上下文检查
-                const numIndex = text.indexOf(numStr);
-                const beforeText = text.substring(Math.max(0, numIndex - 3), numIndex);
-                const afterText = text.substring(numIndex + numStr.length, Math.min(text.length, numIndex + numStr.length + 3));
-                
-                console.log(`检查数字 ${n}: 前文="${beforeText}", 后文="${afterText}"`);
-                
-                // 只有当数字紧跟在"各"后面并且紧挨着"米"/"元"时才认为是金额
-                const isAmountContext = 
-                    (beforeText.includes('各') && beforeText.trim().endsWith('各')) &&
-                    (afterText.includes('米') || afterText.includes('元'));
-                
-                // 额外的检查：如果数字等于金额值，并且在金额上下文中，则跳过
-                const isAmountValue = (n === amount) && isAmountContext;
-                
-                if (!isAmountValue) {
-                    nums.add(n);
-                    console.log(`添加号码: ${n}`);
-                } else {
-                    console.log(`跳过金额数字: ${n}`);
-                }
+                console.log(`添加号码: ${n}`);
+                nums.add(n);
             }
         });
     }
 
-    // 使用改进的尾数解析函数
+    // 解析尾数投注
     const tailNumbers = parseTailNumbers(cleanedText);
-    tailNumbers.forEach(n => {
-        nums.add(n);
-        console.log(`添加尾数号码: ${n}`);
-    });
-
-    // 生肖 - 使用修正后的生肖映射
-    const zodiacs = Object.keys(ZODIAC);
-    zodiacs.forEach(z => {
-        if (cleanedText.includes(z)) {
-            ZODIAC[z].forEach(n => {
-                // 检查这个生肖号码是否等于金额值，如果是则跳过
-                if (n !== amount) {
-                    nums.add(n);
-                    console.log(`添加生肖 ${z} 号码: ${n}`);
-                } else {
-                    console.log(`跳过金额生肖号码: ${n} (生肖: ${z})`);
-                }
-            });
-        }
-    });
-
-    // 新增：红蓝绿波解析 - 支持简写（红、蓝、绿）
-    const colorWaves = Object.keys(COLOR_WAVE);
+    tailNumbers.forEach(n => nums.add(n));
     
-    // 检查简写形式（红、蓝、绿）
-    if (cleanedText.includes('红')) {
-        COLOR_WAVE['红波'].forEach(n => {
-            if (n !== amount) {
-                nums.add(n);
-                console.log(`添加红波号码: ${n}`);
-            } else {
-                console.log(`跳过金额红波号码: ${n}`);
-            }
-        });
+    // 解析生肖投注 - 使用原始文本，因为清理后的文本可能移除了生肖
+    for (const [zodiac, zodiacNumbers] of Object.entries(ZODIAC)) {
+        if (text.includes(zodiac)) {
+            console.log(`找到生肖: ${zodiac}`);
+            zodiacNumbers.forEach(n => nums.add(n));
+        }
     }
     
-    if (cleanedText.includes('蓝')) {
-        COLOR_WAVE['蓝波'].forEach(n => {
-            if (n !== amount) {
-                nums.add(n);
-                console.log(`添加蓝波号码: ${n}`);
-            } else {
-                console.log(`跳过金额蓝波号码: ${n}`);
-            }
-        });
+    // 解析红蓝绿波 - 使用原始文本
+    for (const [color, colorNumbers] of Object.entries(COLOR_WAVE)) {
+        if (text.includes(color)) {
+            console.log(`找到颜色波: ${color}`);
+            colorNumbers.forEach(n => nums.add(n));
+        }
     }
     
-    if (cleanedText.includes('绿')) {
-        COLOR_WAVE['绿波'].forEach(n => {
-            if (n !== amount) {
-                nums.add(n);
-                console.log(`添加绿波号码: ${n}`);
-            } else {
-                console.log(`跳过金额绿波号码: ${n}`);
-            }
-        });
+    // 解析单双 - 使用原始文本
+    for (const [parityType, parityNumbers] of Object.entries(PARITY)) {
+        if (text.includes(parityType)) {
+            console.log(`找到单双: ${parityType}`);
+            parityNumbers.forEach(n => nums.add(n));
+        }
     }
     
-    // 检查完整形式（红波、蓝波、绿波）
-    colorWaves.forEach(color => {
-        if (cleanedText.includes(color)) {
-            COLOR_WAVE[color].forEach(n => {
-                // 检查这个波色号码是否等于金额值，如果是则跳过
-                if (n !== amount) {
-                    nums.add(n);
-                    console.log(`添加${color}号码: ${n}`);
-                } else {
-                    console.log(`跳过金额${color}号码: ${n}`);
-                }
-            });
-        }
-    });
-
-    // 新增：单双解析
-    const parities = Object.keys(PARITY);
-    parities.forEach(parity => {
-        if (cleanedText.includes(parity)) {
-            PARITY[parity].forEach(n => {
-                // 检查这个单双号码是否等于金额值，如果是则跳过
-                if (n !== amount) {
-                    nums.add(n);
-                    console.log(`添加${parity}号码: ${n}`);
-                } else {
-                    console.log(`跳过金额${parity}号码: ${n}`);
-                }
-            });
-        }
-    });
-
-    console.log("最终解析号码:", Array.from(nums));
-    return Array.from(nums);
+    const result = Array.from(nums).sort((a, b) => a - b);
+    console.log("最终解析的号码:", result);
+    return result;
 }
 
 // 获取所有开奖号码
@@ -1249,8 +1175,8 @@ function showResults() {
                 html += `<tr>
                     <td>${lineDisplay} ${getBetTypeLabel(i.betType)}</td>
                     <td>${i.numCount}</td>
-                    <td>${i.cost}元</td>
-                    <td class="${i.isWin?'win':''}">${i.isWin?i.winAmount+'元':'-'}</td>
+                    <td><span class="money-red">${i.cost} 元</span></td>
+                    <td class="${i.isWin?'win':''}"><span class="money-red">${i.isWin?i.winAmount+' 元':'-'}</span></td>
                 </tr>`;
                 
                 // 显示拆分信息
@@ -1275,8 +1201,8 @@ function showResults() {
             html += `</table>`;
             
             html += `<div class="total">
-                💰 投入：${userCost}元 | 中奖：${userWin}元 | 净利润：<span class="${profit>=0?'win':''}">${profit>=0?'+':''}${profit}</span>元<br>
-                <span class="total-bet-win">累计中奖投注：${userWinBetAmount}元</span><br>
+                💰 投入：<span class="money-red">${userCost} 元</span> | 中奖：<span class="money-red">${userWin} 元</span> | 净利润：<span class="${profit>=0?'money-red':''}">${profit>=0?'+':''}${profit}</span> <span class="money-red">元</span><br>
+                <span class="total-bet-win">累计中奖投注：<span class="money-red">${userWinBetAmount} 元</span></span><br>
                 <span class="zodiac-display"> 今日生肖：${getTodayZodiacDisplay(winningNumbers)}</span>
             </div>`;
         }
@@ -1288,10 +1214,10 @@ function showResults() {
     const totalProfit = totalAllWin - totalAllCost;
     resultContainer.innerHTML += `<div class="total" style="margin-top:20px;">
         📊 全体汇总：<br>
-        总投入：${totalAllCost} 元<br>
-        总中奖：${totalAllWin} 元<br>
-        总净利润：<span class="${totalProfit>=0?'win':''}">${totalProfit>=0?'+':''}${totalProfit}</span> 元<br>
-        <span class="total-bet-win">累计中奖投注：${totalWinBetAmount}元</span><br>
+        总投入：<span class="money-red">${totalAllCost} 元</span><br>
+        总中奖：<span class="money-red">${totalAllWin} 元</span><br>
+        总净利润：<span class="${totalProfit>=0?'money-red':''}">${totalProfit>=0?'+':''}${totalProfit}</span> <span class="money-red">元</span><br>
+        <span class="total-bet-win">累计中奖投注：<span class="money-red">${totalWinBetAmount} 元</span></span><br>
         <span class="zodiac-display"> 今日生肖：${getTodayZodiacDisplay(winningNumbers)}</span>
     </div>`;
 
@@ -1303,7 +1229,7 @@ function showResults() {
             totalCost: totalAllCost,
             totalWin: totalAllWin,
             totalProfit: totalProfit,
-            totalWinBetAmount: totalWinBetAmount
+            totalBetWin: totalWinBetAmount
         }
     };
 }
