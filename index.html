@@ -795,14 +795,33 @@ function getBetTypeLabel(betType) {
     }
 }
 
-// 改进的尾数解析函数 - 修复点号分隔的尾数识别
+// 改进的尾数解析函数 - 修复尾包X格式的识别
 function parseTailNumbers(text) {
     const nums = new Set();
+    
+    // 修复：匹配"尾包X"格式
+    const tailPackMatch = text.match(/尾\s*包\s*([\d\s\-、,，.]+)/);
+    if (tailPackMatch) {
+        const tailPart = tailPackMatch[1];
+        console.log("找到尾包格式:", tailPart);
+        const digits = tailPart.match(/\d/g);
+        if (digits) {
+            digits.forEach(d => {
+                const digit = parseInt(d);
+                if (digit >= 0 && digit <= 9 && TAIL[digit]) {
+                    // 添加该尾数对应的所有号码
+                    TAIL[digit].forEach(n => nums.add(n));
+                    console.log(`尾包添加尾数 ${digit} 对应的号码:`, TAIL[digit]);
+                }
+            });
+        }
+    }
     
     // 匹配包尾模式，支持多种分隔符：-、,、，、空格、点号等
     const tailMatch = text.match(/包\s*([\d\s\-、,，.]+)\s*尾/);
     if (tailMatch) {
         const tailPart = tailMatch[1];
+        console.log("找到包尾格式:", tailPart);
         // 提取所有数字（支持多种分隔符和连续数字）
         const digits = tailPart.match(/\d/g);
         if (digits) {
@@ -811,6 +830,7 @@ function parseTailNumbers(text) {
                 if (digit >= 0 && digit <= 9 && TAIL[digit]) {
                     // 添加该尾数对应的所有号码
                     TAIL[digit].forEach(n => nums.add(n));
+                    console.log(`包尾添加尾数 ${digit} 对应的号码:`, TAIL[digit]);
                 }
             });
         }
@@ -820,11 +840,13 @@ function parseTailNumbers(text) {
     const dotTailMatch = text.match(/(\d+(?:\.\d+)*)\s*尾/);
     if (dotTailMatch && !text.includes('包')) {
         const digitsStr = dotTailMatch[1];
+        console.log("找到点号尾数格式:", digitsStr);
         // 将点号分隔的数字字符串拆分为单个数字
         const digits = digitsStr.split('.').map(d => parseInt(d));
         digits.forEach(digit => {
             if (digit >= 0 && digit <= 9 && TAIL[digit]) {
                 TAIL[digit].forEach(n => nums.add(n));
+                console.log(`点号尾数添加尾数 ${digit} 对应的号码:`, TAIL[digit]);
             }
         });
     }
@@ -833,15 +855,18 @@ function parseTailNumbers(text) {
     const continuousTailMatch = text.match(/(\d+)\s*尾/);
     if (continuousTailMatch && !text.includes('包') && !text.includes('.')) {
         const digitsStr = continuousTailMatch[1];
+        console.log("找到连续尾数格式:", digitsStr);
         // 将连续数字字符串拆分为单个数字
         const digits = digitsStr.split('').map(d => parseInt(d));
         digits.forEach(digit => {
             if (digit >= 0 && digit <= 9 && TAIL[digit]) {
                 TAIL[digit].forEach(n => nums.add(n));
+                console.log(`连续尾数添加尾数 ${digit} 对应的号码:`, TAIL[digit]);
             }
         });
     }
     
+    console.log("尾数解析结果:", Array.from(nums));
     return Array.from(nums);
 }
 
@@ -911,7 +936,7 @@ function extractAmount(line) {
     return 1;
 }
 
-// 解析号码（修复版）- 修复生肖号码被误删除的问题
+// 解析号码（修复版）- 修复颜色波解析问题
 function parseNumbers(text) {
     const nums = new Set();
     console.log("开始解析号码:", text);
@@ -960,11 +985,20 @@ function parseNumbers(text) {
         }
     }
     
-    // 解析红蓝绿波 - 使用原始文本
-    for (const [color, colorNumbers] of Object.entries(COLOR_WAVE)) {
-        if (text.includes(color)) {
-            console.log(`找到颜色波: ${color}`);
-            colorNumbers.forEach(n => nums.add(n));
+    // 修复：解析红蓝绿波 - 支持不带"波"字的颜色匹配
+    const colorKeywords = {
+        '红': '红波',
+        '蓝': '蓝波', 
+        '绿': '绿波',
+        '红波': '红波',
+        '蓝波': '蓝波',
+        '绿波': '绿波'
+    };
+    
+    for (const [keyword, colorKey] of Object.entries(colorKeywords)) {
+        if (text.includes(keyword)) {
+            console.log(`找到颜色: ${keyword} -> ${colorKey}`);
+            COLOR_WAVE[colorKey].forEach(n => nums.add(n));
         }
     }
     
