@@ -286,6 +286,32 @@
             color: #2d8cf0;
             font-weight: bold;
         }
+        
+        /* 新增样式：用户统计表格 */
+        .user-stats-table {
+            margin-top: 20px;
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .user-stats-table h3 {
+            color: #2d8cf0;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .profit-positive {
+            color: #f53f3f;
+            font-weight: bold;
+        }
+        
+        .profit-negative {
+            color: #19be6b;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -311,6 +337,8 @@
             <button onclick="selectName('name-1', '梦思雨')">梦思雨</button>
             <button onclick="selectName('name-1', '王锦红')">王锦红</button>
             <button onclick="selectName('name-1', '卓义茹')">卓义茹</button>
+            <button onclick="selectName('name-1', '敏姑')">敏姑</button>
+            <button onclick="selectName('name-1', '琴姑')">琴姑</button>
         </div>
         <textarea id="bets-1" placeholder="请输入您的投注内容，例如：
 包3-5-7尾各15米新
@@ -560,6 +588,8 @@ function editRecord(id) {
                 <button onclick="selectName('name-${index + 1}', '梦思雨')">梦思雨</button>
                 <button onclick="selectName('name-${index + 1}', '王锦红')">王锦红</button>
                 <button onclick="selectName('name-${index + 1}', '卓义茹')">卓义茹</button>
+                <button onclick="selectName('name-${index + 1}', '敏姑')">敏姑</button>
+                <button onclick="selectName('name-${index + 1}', '琴姑')">琴姑</button>
             </div>
             <textarea id="bets-${index + 1}" placeholder="输入投注内容">${user.bets}</textarea>
         `;
@@ -646,6 +676,8 @@ function loadRecord(id) {
                 <button onclick="selectName('name-${index + 1}', '梦思雨')">梦思雨</button>
                 <button onclick="selectName('name-${index + 1}', '王锦红')">王锦红</button>
                 <button onclick="selectName('name-${index + 1}', '卓义茹')">卓义茹</button>
+                <button onclick="selectName('name-${index + 1}', '敏姑')">敏姑</button>
+                <button onclick="selectName('name-${index + 1}', '琴姑')">琴姑</button>
             </div>
             <textarea id="bets-${index + 1}" placeholder="输入投注内容">${user.bets}</textarea>
         `;
@@ -684,6 +716,8 @@ function addUser() {
             <button onclick="selectName('name-${userCount}', '梦思雨')">梦思雨</button>
             <button onclick="selectName('name-${userCount}', '王锦红')">王锦红</button>
             <button onclick="selectName('name-${userCount}', '卓义茹')">卓义茹</button>
+            <button onclick="selectName('name-${userCount}', '敏姑')">敏姑</button>
+            <button onclick="selectName('name-${userCount}', '琴姑')">琴姑</button>
         </div>
         <textarea id="bets-${userCount}" placeholder="输入投注内容"></textarea>
     `;
@@ -812,106 +846,105 @@ function getBetTypeLabel(betType) {
     }
 }
 
-// 改进的尾数解析函数 - 避免将"包X"误解析为尾数
+// 提取数字的辅助函数
+function extractDigitsFromText(text) {
+    const digits = [];
+    
+    // 匹配阿拉伯数字
+    const arabicDigits = text.match(/\d/g);
+    if (arabicDigits) {
+        arabicDigits.forEach(d => {
+            const digit = parseInt(d);
+            if (digit >= 0 && digit <= 9) digits.push(digit);
+        });
+    }
+    
+    // 匹配中文数字
+    const chineseDigits = text.match(/[一二三四五六七八九十两俩]/g);
+    if (chineseDigits) {
+        chineseDigits.forEach(d => {
+            const digit = chineseToNumber(d);
+            if (digit >= 0 && digit <= 9) digits.push(digit);
+        });
+    }
+    
+    return digits;
+}
+
+// 改进的尾数解析函数 - 避免重复添加相同的尾数号码
 function parseTailNumbers(text) {
     const nums = [];
+    console.log("尾数解析文本:", text);
     
-    // 1. 尾包X格式（中文或数字）- 必须是"尾包X"，不是单独的"包X"
+    // 提取所有尾数数字
+    const tailDigits = [];
+    
+    // 1. 尾包X格式（中文或数字）
     const tailPackMatch = text.match(/尾\s*包\s*([\d一二三四五六七八九十两俩百\s\-、,，.]+)/);
     if (tailPackMatch) {
         const tailPart = tailPackMatch[1];
         console.log("找到尾包格式:", tailPart);
         
-        // 提取数字和中文数字
-        const digits = [];
-        
-        // 匹配阿拉伯数字
-        const arabicDigits = tailPart.match(/\d/g);
-        if (arabicDigits) {
-            arabicDigits.forEach(d => {
-                const digit = parseInt(d);
-                if (digit >= 0 && digit <= 9) digits.push(digit);
-            });
-        }
-        
-        // 匹配中文数字
-        const chineseDigits = tailPart.match(/[一二三四五六七八九十两俩百]/g);
-        if (chineseDigits) {
-            chineseDigits.forEach(d => {
-                const digit = chineseToNumber(d);
-                if (digit >= 0 && digit <= 9) digits.push(digit);
-            });
-        }
-        
+        const digits = extractDigitsFromText(tailPart);
         digits.forEach(digit => {
-            if (digit >= 0 && digit <= 9 && TAIL[digit]) {
-                TAIL[digit].forEach(n => nums.push(n));
-                console.log(`尾包添加尾数 ${digit} 对应的号码:`, TAIL[digit]);
+            if (digit >= 0 && digit <= 9 && !tailDigits.includes(digit)) {
+                tailDigits.push(digit);
             }
         });
     }
     
-    // 2. 包X尾格式（中文或数字）- 必须是"包X尾"，不是单独的"包X"
+    // 2. 包X尾格式（中文或数字）
     const packTailMatch = text.match(/包\s*([\d一二三四五六七八九十两俩百\s\-、,，.]+)\s*尾/);
-    if (packTailMatch) {
+    if (packTailMatch && !text.includes('尾包')) {
         const tailPart = packTailMatch[1];
         console.log("找到包尾格式:", tailPart);
         
-        const digits = [];
-        
-        // 匹配阿拉伯数字
-        const arabicDigits = tailPart.match(/\d/g);
-        if (arabicDigits) {
-            arabicDigits.forEach(d => {
-                const digit = parseInt(d);
-                if (digit >= 0 && digit <= 9) digits.push(digit);
-            });
-        }
-        
-        // 匹配中文数字
-        const chineseDigits = tailPart.match(/[一二三四五六七八九十两俩百]/g);
-        if (chineseDigits) {
-            chineseDigits.forEach(d => {
-                const digit = chineseToNumber(d);
-                if (digit >= 0 && digit <= 9) digits.push(digit);
-            });
-        }
-        
+        const digits = extractDigitsFromText(tailPart);
         digits.forEach(digit => {
-            if (digit >= 0 && digit <= 9 && TAIL[digit]) {
-                TAIL[digit].forEach(n => nums.push(n));
-                console.log(`包尾添加尾数 ${digit} 对应的号码:`, TAIL[digit]);
+            if (digit >= 0 && digit <= 9 && !tailDigits.includes(digit)) {
+                tailDigits.push(digit);
             }
         });
     }
     
     // 3. 点号尾数格式（1.2.3尾）
     const dotTailMatch = text.match(/(\d+(?:\.\d+)*)\s*尾/);
-    if (dotTailMatch && !text.includes('包')) {
+    if (dotTailMatch && !text.includes('包') && !text.includes('尾包')) {
         const digitsStr = dotTailMatch[1];
         console.log("找到点号尾数格式:", digitsStr);
         const digits = digitsStr.split('.').map(d => parseInt(d));
         digits.forEach(digit => {
-            if (digit >= 0 && digit <= 9 && TAIL[digit]) {
-                TAIL[digit].forEach(n => nums.push(n));
-                console.log(`点号尾数添加尾数 ${digit} 对应的号码:`, TAIL[digit]);
+            if (digit >= 0 && digit <= 9 && !tailDigits.includes(digit)) {
+                tailDigits.push(digit);
             }
         });
     }
     
     // 4. 连续尾数格式（123尾）
     const continuousTailMatch = text.match(/(\d+)\s*尾/);
-    if (continuousTailMatch && !text.includes('包') && !text.includes('.')) {
+    if (continuousTailMatch && !text.includes('包') && !text.includes('.') && !text.includes('尾包')) {
         const digitsStr = continuousTailMatch[1];
         console.log("找到连续尾数格式:", digitsStr);
         const digits = digitsStr.split('').map(d => parseInt(d));
         digits.forEach(digit => {
-            if (digit >= 0 && digit <= 9 && TAIL[digit]) {
-                TAIL[digit].forEach(n => nums.push(n));
-                console.log(`连续尾数添加尾数 ${digit} 对应的号码:`, TAIL[digit]);
+            if (digit >= 0 && digit <= 9 && !tailDigits.includes(digit)) {
+                tailDigits.push(digit);
             }
         });
     }
+    
+    // 5. 将尾数数字转换为对应的号码
+    tailDigits.forEach(digit => {
+        if (TAIL[digit]) {
+            // 确保没有重复添加相同的号码
+            TAIL[digit].forEach(n => {
+                if (!nums.includes(n)) {
+                    nums.push(n);
+                }
+            });
+            console.log(`尾数 ${digit} 对应的号码:`, TAIL[digit]);
+        }
+    });
     
     console.log("尾数解析结果:", nums);
     return nums;
@@ -1008,7 +1041,7 @@ function getTextExcludingAmount(text) {
     return result.trim();
 }
 
-// 解析号码（修复版）- 避免将金额数字解析为号码
+// 解析号码（修复版）- 区分尾数投注和直接号码投注，解决重复问题
 function parseNumbers(text) {
     const nums = [];
     console.log("开始解析号码:", text);
@@ -1019,61 +1052,85 @@ function parseNumbers(text) {
     // 获取排除金额后的文本进行号码解析
     const cleanedText = getTextExcludingAmount(text);
     console.log("排除金额后的文本:", cleanedText);
-
-    // 1. 先解析明确的号码（1-49）
-    const numMatches = cleanedText.match(/\b\d{1,2}\b/g);
-    if (numMatches) {
-        console.log("找到的数字:", numMatches);
-        numMatches.forEach(numStr => {
-            const n = parseInt(numStr);
-            if (n >= 1 && n <= 49) {
-                console.log(`添加号码: ${n}`);
-                nums.push(n);
-            }
+    
+    // 判断是否是尾数投注（包含"尾"字且是尾数投注格式）
+    const isTailBet = cleanedText.includes('尾') && 
+                     (cleanedText.includes('包') || 
+                      cleanedText.includes('各') || 
+                      /尾.*包|包.*尾/.test(cleanedText));
+    
+    console.log("是否是尾数投注:", isTailBet);
+    
+    // 1. 如果是尾数投注，使用尾数解析（去重）
+    if (isTailBet) {
+        // 尾数投注：只解析尾数，不去重直接号码（因为没有直接号码）
+        const tailNumbers = parseTailNumbers(cleanedText);
+        // 尾数解析函数已经返回去重后的号码
+        tailNumbers.forEach(n => {
+            nums.push(n);
+            console.log(`添加尾数号码: ${n}`);
         });
-    }
-
-    // 2. 解析尾数
-    const tailNumbers = parseTailNumbers(cleanedText);
-    tailNumbers.forEach(n => {
-        nums.push(n);
-        console.log(`添加尾数号码: ${n}`);
-    });
-    
-    // 3. 解析生肖
-    for (const [zodiac, zodiacNumbers] of Object.entries(ZODIAC)) {
-        if (cleanedText.includes(zodiac)) {
-            console.log(`找到生肖: ${zodiac}`);
-            zodiacNumbers.forEach(n => nums.push(n));
+        
+        // 尾数投注不解析直接号码、生肖、颜色波、单双
+        console.log("尾数投注，跳过直接号码解析");
+    } else {
+        // 2. 非尾数投注，解析所有类型号码（保留重复）
+        
+        // 先解析直接号码（保留重复）
+        const numMatches = cleanedText.match(/\b\d{1,2}\b/g);
+        if (numMatches) {
+            console.log("找到的直接号码:", numMatches);
+            numMatches.forEach(numStr => {
+                const n = parseInt(numStr);
+                if (n >= 1 && n <= 49) {
+                    console.log(`添加直接号码: ${n}`);
+                    nums.push(n); // 直接号码保留重复
+                }
+            });
+        }
+        
+        // 解析尾数格式（不去重）
+        const tailNumbers = parseTailNumbers(cleanedText);
+        tailNumbers.forEach(n => {
+            nums.push(n);
+            console.log(`添加尾数格式号码: ${n}`);
+        });
+        
+        // 解析生肖
+        for (const [zodiac, zodiacNumbers] of Object.entries(ZODIAC)) {
+            if (cleanedText.includes(zodiac)) {
+                console.log(`找到生肖: ${zodiac}`);
+                zodiacNumbers.forEach(n => nums.push(n));
+            }
+        }
+        
+        // 解析颜色波
+        const colorKeywords = {
+            '红': '红波',
+            '蓝': '蓝波', 
+            '绿': '绿波',
+            '红波': '红波',
+            '蓝波': '蓝波',
+            '绿波': '绿波'
+        };
+        
+        for (const [keyword, colorKey] of Object.entries(colorKeywords)) {
+            if (cleanedText.includes(keyword)) {
+                console.log(`找到颜色: ${keyword} -> ${colorKey}`);
+                COLOR_WAVE[colorKey].forEach(n => nums.push(n));
+            }
+        }
+        
+        // 解析单双
+        for (const [parityType, parityNumbers] of Object.entries(PARITY)) {
+            if (cleanedText.includes(parityType)) {
+                console.log(`找到单双: ${parityType}`);
+                parityNumbers.forEach(n => nums.push(n));
+            }
         }
     }
     
-    // 4. 解析颜色波
-    const colorKeywords = {
-        '红': '红波',
-        '蓝': '蓝波', 
-        '绿': '绿波',
-        '红波': '红波',
-        '蓝波': '蓝波',
-        '绿波': '绿波'
-    };
-    
-    for (const [keyword, colorKey] of Object.entries(colorKeywords)) {
-        if (cleanedText.includes(keyword)) {
-            console.log(`找到颜色: ${keyword} -> ${colorKey}`);
-            COLOR_WAVE[colorKey].forEach(n => nums.push(n));
-        }
-    }
-    
-    // 5. 解析单双
-    for (const [parityType, parityNumbers] of Object.entries(PARITY)) {
-        if (cleanedText.includes(parityType)) {
-            console.log(`找到单双: ${parityType}`);
-            parityNumbers.forEach(n => nums.push(n));
-        }
-    }
-    
-    console.log("最终解析的号码（含重复）:", nums);
+    console.log("最终解析的号码:", nums);
     return nums;
 }
 
@@ -1215,6 +1272,9 @@ function showResults() {
 
     const resultContainer = document.getElementById('results-inner');
     resultContainer.innerHTML = '';
+    
+    // 存储每个用户的统计数据
+    const userStats = [];
     let totalAllCost = 0, totalAllWin = 0, totalWinBetAmount = 0;
 
     userData.forEach(user => {
@@ -1272,6 +1332,15 @@ function showResults() {
         totalWinBetAmount += userWinBetAmount;
         const profit = userWin - userCost;
 
+        // 保存用户统计数据
+        userStats.push({
+            name: user.name,
+            cost: userCost,
+            win: userWin,
+            profit: profit,
+            winBetAmount: userWinBetAmount
+        });
+
         let html = `<div class="result-card"><h3>👤 ${user.name}</h3>`;
 
         if (allBets.length === 0) {
@@ -1313,7 +1382,7 @@ function showResults() {
             html += `</table>`;
             
             html += `<div class="total">
-                💰 投入：<span class="money-blue">${userCost} 元</span> | 中奖：<span class="money-red">${userWin} 元</span> | 净利润：<span class="${profit>=0?'money-red':''}">${profit>=0?'+':''}${profit}</span> <span class="money-red">元</span><br>
+                💰 投入：<span class="money-blue">${userCost} 元</span> | 中奖：<span class="money-red">${userWin} 元</span> | 净利润：<span class="${profit>=0?'profit-positive':'profit-negative'}">${profit>=0?'+':''}${profit}</span> <span class="${profit>=0?'money-red':'money-blue'}">元</span><br>
                 <span class="total-bet-win">累计中奖投注：<span class="money-red">${userWinBetAmount} 元</span></span><br>
                 <span class="zodiac-display"> 今日生肖：${getTodayZodiacDisplay(winningNumbers)}</span>
             </div>`;
@@ -1324,14 +1393,43 @@ function showResults() {
     });
 
     const totalProfit = totalAllWin - totalAllCost;
+    
+    // 全体汇总
     resultContainer.innerHTML += `<div class="total" style="margin-top:20px;">
         📊 全体汇总：<br>
         总投入：<span class="money-blue">${totalAllCost} 元</span><br>
         总中奖：<span class="money-red">${totalAllWin} 元</span><br>
-        总净利润：<span class="${totalProfit>=0?'money-red':''}">${totalProfit>=0?'+':''}${totalProfit}</span> <span class="money-red">元</span><br>
+        总净利润：<span class="${totalProfit>=0?'profit-positive':'profit-negative'}">${totalProfit>=0?'+':''}${totalProfit}</span> <span class="${totalProfit>=0?'money-red':'money-blue'}">元</span><br>
         <span class="total-bet-win">累计中奖投注：<span class="money-red">${totalWinBetAmount} 元</span></span><br>
         <span class="zodiac-display"> 今日生肖：${getTodayZodiacDisplay(winningNumbers)}</span>
     </div>`;
+    
+    // 添加用户详细统计表格
+    if (userStats.length > 0) {
+        let userStatsHtml = `<div class="user-stats-table">
+            <h3>👥 用户详细统计</h3>
+            <table>
+                <tr>
+                    <th>用户名</th>
+                    <th>投入</th>
+                    <th>中奖</th>
+                    <th>净利润</th>
+                    <th>累计中奖投注</th>
+                </tr>`;
+        
+        userStats.forEach(stat => {
+            userStatsHtml += `<tr>
+                <td><strong>${stat.name}</strong></td>
+                <td><span class="money-blue">${stat.cost} 元</span></td>
+                <td><span class="money-red">${stat.win} 元</span></td>
+                <td class="${stat.profit>=0?'profit-positive':'profit-negative'}">${stat.profit>=0?'+':''}${stat.profit} <span class="${stat.profit>=0?'money-red':'money-blue'}">元</span></td>
+                <td><span class="money-red">${stat.winBetAmount} 元</span></td>
+            </tr>`;
+        });
+        
+        userStatsHtml += `</table></div>`;
+        resultContainer.innerHTML += userStatsHtml;
+    }
 
     currentResults = {
         winningNumbers,
@@ -1341,7 +1439,8 @@ function showResults() {
             totalWin: totalAllWin,
             totalProfit: totalProfit,
             totalBetWin: totalWinBetAmount
-        }
+        },
+        userStats: userStats
     };
 }
 
