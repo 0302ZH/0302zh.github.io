@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>精准投注计算器（多开奖号码版）</title>
     <style>
-        /* 保持原有样式不变 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', sans-serif;
@@ -415,20 +414,52 @@ const PARITY = {
     双: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48]
 };
 
-// 中文数字映射
-const CHINESE_NUMBERS = {
-    '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
-    '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
-    '两': 2, '俩': 2
-};
-
 let userCount = 1;
 let currentResults = null;
-let editingRecordId = null; // 用于跟踪正在编辑的记录ID
+let editingRecordId = null;
 
 // 选择用户名
 function selectName(inputId, name) {
     document.getElementById(inputId).value = name;
+}
+
+// 中文数字转阿拉伯数字函数 - 增强版
+function chineseToNumber(chineseStr) {
+    const chineseNumbers = {
+        '零': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+        '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
+        '两': 2, '俩': 2, '百': 100
+    };
+    
+    // 如果是单个数字，直接返回
+    if (chineseStr in chineseNumbers) {
+        return chineseNumbers[chineseStr];
+    }
+    
+    let result = 0;
+    let temp = 0;
+    
+    for (let i = 0; i < chineseStr.length; i++) {
+        const char = chineseStr[i];
+        const num = chineseNumbers[char];
+        
+        if (num === 10) {
+            // 处理"十"的情况
+            if (temp === 0) temp = 1;
+            result += temp * 10;
+            temp = 0;
+        } else if (num === 100) {
+            // 处理"百"的情况
+            if (temp === 0) temp = 1;
+            result += temp * 100;
+            temp = 0;
+        } else if (num !== undefined) {
+            temp = num;
+        }
+    }
+    
+    result += temp;
+    return result || 1; // 如果解析失败，返回默认值1
 }
 
 // 初始化历史记录
@@ -457,7 +488,7 @@ function saveRecord() {
     
     const history = getHistory();
     const record = {
-        id: editingRecordId || Date.now(), // 如果正在编辑，使用原ID
+        id: editingRecordId || Date.now(),
         timestamp: editingRecordId ? new Date().toLocaleString() + ' (已编辑)' : new Date().toLocaleString(),
         winningNumbers: currentResults.winningNumbers,
         userData: currentResults.userData,
@@ -465,20 +496,18 @@ function saveRecord() {
     };
     
     if (editingRecordId) {
-        // 更新现有记录
         const index = history.findIndex(record => record.id === editingRecordId);
         if (index !== -1) {
             history[index] = record;
             alert('记录更新成功！');
         }
     } else {
-        // 添加新记录
         history.unshift(record);
         alert('记录保存成功！');
     }
     
     saveHistory(history);
-    editingRecordId = null; // 重置编辑状态
+    editingRecordId = null;
 }
 
 // 删除记录
@@ -490,7 +519,7 @@ function deleteRecord(id) {
     const history = getHistory();
     const updatedHistory = history.filter(record => record.id !== id);
     saveHistory(updatedHistory);
-    showHistory(); // 刷新显示
+    showHistory();
 }
 
 // 编辑历史记录
@@ -503,15 +532,12 @@ function editRecord(id) {
         return;
     }
     
-    // 设置编辑状态
     editingRecordId = id;
     
-    // 填充开奖号码
     document.getElementById('winning-macau').value = record.winningNumbers.macau || '';
     document.getElementById('winning-old-macau').value = record.winningNumbers.oldMacau || '';
     document.getElementById('winning-hongkong').value = record.winningNumbers.hongkong || '';
     
-    // 填充用户数据
     const container = document.getElementById('users-container');
     container.innerHTML = '';
     
@@ -594,12 +620,10 @@ function loadRecord(id) {
         return;
     }
     
-    // 填充开奖号码
     document.getElementById('winning-macau').value = record.winningNumbers.macau || '';
     document.getElementById('winning-old-macau').value = record.winningNumbers.oldMacau || '';
     document.getElementById('winning-hongkong').value = record.winningNumbers.hongkong || '';
     
-    // 填充用户数据
     const container = document.getElementById('users-container');
     container.innerHTML = '';
     
@@ -695,7 +719,7 @@ function getTodayZodiacDisplay(winningNumbers) {
     return parts.join(' ') || '无开奖号码';
 }
 
-// 智能断句：改进的拆分逻辑 - 修复复杂情况
+// 智能断句：改进的拆分逻辑
 function splitBetsByAmount(text) {
     const lines = [];
     const rawLines = text.split('\n').filter(line => line.trim());
@@ -706,19 +730,17 @@ function splitBetsByAmount(text) {
         
         console.log("处理行:", cleanLine);
         
-        // 改进的拆分逻辑：按金额标记拆分
         const segments = [];
         
-        // 使用正则表达式查找所有金额标记 - 改进：支持以点号开头的金额
-        const amountMatches = [...cleanLine.matchAll(/(\.*各(?:数)?\s*[\d一二三四五六七八九十两俩]+\s*(?:米|元)?)/g)];
+        // 增强的金额匹配：支持中文数字、阿拉伯数字和各种格式
+        const amountPattern = /(?:各(?:数)?|包)\s*(?:[\d一二三四五六七八九十两俩百]+\s*(?:米|元)?|[\d一二三四五六七八九十两俩百]+\s*尾\s*[\d一二三四五六七八九十两俩百]+\s*(?:米|元)?)/g;
+        const amountMatches = [...cleanLine.matchAll(amountPattern)];
         
         console.log("找到金额标记:", amountMatches);
         
         if (amountMatches.length === 0) {
-            // 如果没有金额标记，整行作为一个投注
             segments.push(cleanLine);
         } else {
-            // 按金额标记拆分
             let lastIndex = 0;
             amountMatches.forEach((match, index) => {
                 const matchIndex = match.index;
@@ -726,7 +748,6 @@ function splitBetsByAmount(text) {
                 
                 console.log(`处理匹配 ${index}: 位置=${matchIndex}, 文本=${matchText}`);
                 
-                // 获取从上一个匹配到当前匹配之间的内容
                 if (matchIndex > lastIndex) {
                     const segment = cleanLine.substring(lastIndex, matchIndex + matchText.length).trim();
                     if (segment) {
@@ -734,7 +755,6 @@ function splitBetsByAmount(text) {
                         console.log(`添加段落到位置 ${matchIndex + matchText.length}: ${segment}`);
                     }
                 } else if (matchIndex === 0) {
-                    // 如果匹配从行首开始，直接添加
                     const segment = cleanLine.substring(0, matchText.length).trim();
                     if (segment) {
                         segments.push(segment);
@@ -743,12 +763,10 @@ function splitBetsByAmount(text) {
                 }
                 lastIndex = matchIndex + matchText.length;
                 
-                // 如果是最后一个匹配，添加剩余内容
                 if (index === amountMatches.length - 1 && lastIndex < cleanLine.length) {
                     const remaining = cleanLine.substring(lastIndex).trim();
                     if (remaining) {
                         console.log(`添加剩余内容: ${remaining}`);
-                        // 将剩余内容附加到最后一个段落的末尾
                         if (segments.length > 0) {
                             segments[segments.length - 1] += ' ' + remaining;
                             console.log(`附加到最后一个段落: ${segments[segments.length - 1]}`);
@@ -760,7 +778,6 @@ function splitBetsByAmount(text) {
             });
         }
         
-        // 处理拆分后的段落
         segments.forEach(segment => {
             if (segment.trim()) {
                 lines.push(segment.trim());
@@ -773,7 +790,7 @@ function splitBetsByAmount(text) {
     return lines;
 }
 
-// 判断投注类型 - 添加旧澳门支持
+// 判断投注类型
 function getBetType(line) {
     const clean = line.trim();
     if (/香港/.test(clean)) return 'hongkong';
@@ -785,7 +802,7 @@ function getBetType(line) {
     return 'normal';
 }
 
-// 获取投注类型标签 - 添加旧澳门样式
+// 获取投注类型标签
 function getBetTypeLabel(betType) {
     switch(betType) {
         case 'hongkong': return '<span class="bet-type hongkong">香港</span>';
@@ -795,197 +812,243 @@ function getBetTypeLabel(betType) {
     }
 }
 
-// 改进的尾数解析函数 - 修复尾包X格式的识别
+// 改进的尾数解析函数 - 避免将"包X"误解析为尾数
 function parseTailNumbers(text) {
-    const nums = new Set();
+    const nums = [];
     
-    // 修复：匹配"尾包X"格式
-    const tailPackMatch = text.match(/尾\s*包\s*([\d\s\-、,，.]+)/);
+    // 1. 尾包X格式（中文或数字）- 必须是"尾包X"，不是单独的"包X"
+    const tailPackMatch = text.match(/尾\s*包\s*([\d一二三四五六七八九十两俩百\s\-、,，.]+)/);
     if (tailPackMatch) {
         const tailPart = tailPackMatch[1];
         console.log("找到尾包格式:", tailPart);
-        const digits = tailPart.match(/\d/g);
-        if (digits) {
-            digits.forEach(d => {
+        
+        // 提取数字和中文数字
+        const digits = [];
+        
+        // 匹配阿拉伯数字
+        const arabicDigits = tailPart.match(/\d/g);
+        if (arabicDigits) {
+            arabicDigits.forEach(d => {
                 const digit = parseInt(d);
-                if (digit >= 0 && digit <= 9 && TAIL[digit]) {
-                    // 添加该尾数对应的所有号码
-                    TAIL[digit].forEach(n => nums.add(n));
-                    console.log(`尾包添加尾数 ${digit} 对应的号码:`, TAIL[digit]);
-                }
+                if (digit >= 0 && digit <= 9) digits.push(digit);
             });
         }
+        
+        // 匹配中文数字
+        const chineseDigits = tailPart.match(/[一二三四五六七八九十两俩百]/g);
+        if (chineseDigits) {
+            chineseDigits.forEach(d => {
+                const digit = chineseToNumber(d);
+                if (digit >= 0 && digit <= 9) digits.push(digit);
+            });
+        }
+        
+        digits.forEach(digit => {
+            if (digit >= 0 && digit <= 9 && TAIL[digit]) {
+                TAIL[digit].forEach(n => nums.push(n));
+                console.log(`尾包添加尾数 ${digit} 对应的号码:`, TAIL[digit]);
+            }
+        });
     }
     
-    // 匹配包尾模式，支持多种分隔符：-、,、，、空格、点号等
-    const tailMatch = text.match(/包\s*([\d\s\-、,，.]+)\s*尾/);
-    if (tailMatch) {
-        const tailPart = tailMatch[1];
+    // 2. 包X尾格式（中文或数字）- 必须是"包X尾"，不是单独的"包X"
+    const packTailMatch = text.match(/包\s*([\d一二三四五六七八九十两俩百\s\-、,，.]+)\s*尾/);
+    if (packTailMatch) {
+        const tailPart = packTailMatch[1];
         console.log("找到包尾格式:", tailPart);
-        // 提取所有数字（支持多种分隔符和连续数字）
-        const digits = tailPart.match(/\d/g);
-        if (digits) {
-            digits.forEach(d => {
+        
+        const digits = [];
+        
+        // 匹配阿拉伯数字
+        const arabicDigits = tailPart.match(/\d/g);
+        if (arabicDigits) {
+            arabicDigits.forEach(d => {
                 const digit = parseInt(d);
-                if (digit >= 0 && digit <= 9 && TAIL[digit]) {
-                    // 添加该尾数对应的所有号码
-                    TAIL[digit].forEach(n => nums.add(n));
-                    console.log(`包尾添加尾数 ${digit} 对应的号码:`, TAIL[digit]);
-                }
+                if (digit >= 0 && digit <= 9) digits.push(digit);
             });
         }
+        
+        // 匹配中文数字
+        const chineseDigits = tailPart.match(/[一二三四五六七八九十两俩百]/g);
+        if (chineseDigits) {
+            chineseDigits.forEach(d => {
+                const digit = chineseToNumber(d);
+                if (digit >= 0 && digit <= 9) digits.push(digit);
+            });
+        }
+        
+        digits.forEach(digit => {
+            if (digit >= 0 && digit <= 9 && TAIL[digit]) {
+                TAIL[digit].forEach(n => nums.push(n));
+                console.log(`包尾添加尾数 ${digit} 对应的号码:`, TAIL[digit]);
+            }
+        });
     }
     
-    // 新增：匹配点号分隔的尾数模式，如"1.2.3尾"
+    // 3. 点号尾数格式（1.2.3尾）
     const dotTailMatch = text.match(/(\d+(?:\.\d+)*)\s*尾/);
     if (dotTailMatch && !text.includes('包')) {
         const digitsStr = dotTailMatch[1];
         console.log("找到点号尾数格式:", digitsStr);
-        // 将点号分隔的数字字符串拆分为单个数字
         const digits = digitsStr.split('.').map(d => parseInt(d));
         digits.forEach(digit => {
             if (digit >= 0 && digit <= 9 && TAIL[digit]) {
-                TAIL[digit].forEach(n => nums.add(n));
+                TAIL[digit].forEach(n => nums.push(n));
                 console.log(`点号尾数添加尾数 ${digit} 对应的号码:`, TAIL[digit]);
             }
         });
     }
     
-    // 新增：匹配连续数字尾号模式，如"0123456789尾"
+    // 4. 连续尾数格式（123尾）
     const continuousTailMatch = text.match(/(\d+)\s*尾/);
     if (continuousTailMatch && !text.includes('包') && !text.includes('.')) {
         const digitsStr = continuousTailMatch[1];
         console.log("找到连续尾数格式:", digitsStr);
-        // 将连续数字字符串拆分为单个数字
         const digits = digitsStr.split('').map(d => parseInt(d));
         digits.forEach(digit => {
             if (digit >= 0 && digit <= 9 && TAIL[digit]) {
-                TAIL[digit].forEach(n => nums.add(n));
+                TAIL[digit].forEach(n => nums.push(n));
                 console.log(`连续尾数添加尾数 ${digit} 对应的号码:`, TAIL[digit]);
             }
         });
     }
     
-    console.log("尾数解析结果:", Array.from(nums));
-    return Array.from(nums);
+    console.log("尾数解析结果:", nums);
+    return nums;
 }
 
-// 提取金额 - 精确识别米前面的数字，支持包X格式
+// 提取金额 - 修复版：正确识别"包X"作为金额
 function extractAmount(line) {
     console.log("解析金额:", line);
     
-    // 1. 首先尝试匹配标准的"各X米"格式（包含中文数字）
-    let match = line.match(/各(?:数)?\s*(\d+)\s*(?:米|元)/i);
+    // 1. 优先匹配"包X"格式（阿拉伯数字）- 必须是独立的"包X"，不能是"包X尾"
+    let match = line.match(/包\s*(\d+)\s*(?:米|元)?(?=\s|$|新|旧|香港|澳门)/i);
     if (match) {
-        console.log("匹配标准格式:", match[1]);
+        // 检查后面是否有"尾"字
+        const checkTail = line.substring(match.index + match[0].length);
+        if (!checkTail.includes("尾")) {
+            console.log("匹配包X格式（阿拉伯数字）:", match[1]);
+            return parseInt(match[1]);
+        }
+    }
+    
+    // 2. 优先匹配"包X"格式（中文数字）- 必须是独立的"包X"，不能是"包X尾"
+    match = line.match(/包\s*([一二三四五六七八九十两俩百]+)\s*(?:米|元)?(?=\s|$|新|旧|香港|澳门)/i);
+    if (match) {
+        // 检查后面是否有"尾"字
+        const checkTail = line.substring(match.index + match[0].length);
+        if (!checkTail.includes("尾")) {
+            const chineseNum = match[1];
+            console.log("匹配包X格式（中文数字）:", chineseNum);
+            return chineseToNumber(chineseNum);
+        }
+    }
+    
+    // 3. 尝试匹配标准的"各X米"格式（阿拉伯数字）
+    match = line.match(/各(?:数)?\s*(\d+)\s*(?:米|元)/i);
+    if (match) {
+        console.log("匹配标准格式（阿拉伯数字）:", match[1]);
         return parseInt(match[1]);
     }
     
-    // 2. 尝试匹配中文数字
-    match = line.match(/各(?:数)?\s*([一二三四五六七八九十两俩]+)\s*(?:米|元)/);
+    // 4. 尝试匹配标准的"各X米"格式（中文数字）
+    match = line.match(/各(?:数)?\s*([一二三四五六七八九十两俩百]+)\s*(?:米|元)?/);
     if (match) {
         const chineseNum = match[1];
-        console.log("匹配中文数字:", chineseNum, "->", CHINESE_NUMBERS[chineseNum]);
-        return CHINESE_NUMBERS[chineseNum] || 1;
+        console.log("匹配标准格式（中文数字）:", chineseNum);
+        return chineseToNumber(chineseNum);
     }
     
-    // 3. 修复：精确匹配"米"前面的数字，无论前面是什么分隔符
-    // 匹配模式：任意字符 + 数字 + "米"
+    // 5. 修复：匹配"米"前面的数字
     match = line.match(/(\d+)\s*(?:米|元)(?!\d)/);
     if (match) {
         console.log("匹配米前数字:", match[1]);
         return parseInt(match[1]);
     }
     
-    // 4. 新增：匹配"包X"、"包X米"、"包X元"格式
-    match = line.match(/包\s*(\d+)\s*(?:米|元)?(?:\s|$)/);
+    // 6. 修复：匹配"各X"格式（没有米字）
+    match = line.match(/各(?:数)?\s*(\d+)(?=\s|$|新|旧|香港|澳门)/i);
     if (match) {
-        console.log("匹配包X格式:", match[1]);
+        console.log("匹配无米格式（阿拉伯数字）:", match[1]);
         return parseInt(match[1]);
     }
     
-    // 5. 修复：匹配连字符分隔的金额，如"21-10米"中的10
+    // 7. 修复：匹配"各X"格式（中文数字，没有米字）
+    match = line.match(/各(?:数)?\s*([一二三四五六七八九十两俩百]+)(?=\s|$|新|旧|香港|澳门)/i);
+    if (match) {
+        const chineseNum = match[1];
+        console.log("匹配无米格式（中文数字）:", chineseNum);
+        return chineseToNumber(chineseNum);
+    }
+    
+    // 8. 修复：匹配连字符分隔的金额
     match = line.match(/(\d+)\s*[-–—]\s*(\d+)\s*(?:米|元)/);
     if (match) {
         console.log("匹配连字符:", match[2]);
         return parseInt(match[2]);
     }
     
-    // 6. 修复：匹配点号分隔的金额，如"08.3米"中的3，支持多个点号
-    match = line.match(/(?:\.\d+)+\s*\.\s*(\d+)\s*(?:米|元)/);
-    if (match) {
-        console.log("匹配点号分隔:", match[1]);
-        return parseInt(match[1]);
-    }
-    
-    // 7. 修复：匹配"..08.3米"这种情况
-    match = line.match(/\.{2,}\s*(\d+)\.\s*(\d+)\s*(?:米|元)/);
-    if (match) {
-        console.log("匹配多点号:", match[2]);
-        return parseInt(match[2]);
-    }
-    
-    // 8. 最后尝试匹配"各X"格式（没有米字）
-    match = line.match(/各(?:数)?\s*(\d+)(?:\s|$|新|旧|香港|澳门)/i);
-    if (match) {
-        console.log("匹配无米格式:", match[1]);
-        return parseInt(match[1]);
-    }
-    
     console.log("未匹配到金额，使用默认值1");
     return 1;
 }
 
-// 解析号码（修复版）- 修复颜色波解析问题
+// 获取排除金额后的文本 - 新增函数
+function getTextExcludingAmount(text) {
+    let result = text;
+    
+    // 移除"包X"金额（但保留"包X尾"）
+    result = result.replace(/包\s*[\d一二三四五六七八九十两俩百]+\s*(?:米|元)?(?=\s|$|新|旧|香港|澳门)/gi, '');
+    
+    // 移除"各X米"金额
+    result = result.replace(/各(?:数)?\s*[\d一二三四五六七八九十两俩百]+\s*(?:米|元)?/gi, '');
+    
+    // 移除单独的数字+米/元
+    result = result.replace(/(\d+)\s*(?:米|元)(?!\d)/g, '');
+    
+    return result.trim();
+}
+
+// 解析号码（修复版）- 避免将金额数字解析为号码
 function parseNumbers(text) {
-    const nums = new Set();
+    const nums = [];
     console.log("开始解析号码:", text);
 
-    // 首先提取金额
     const amount = extractAmount(text);
     console.log("提取到的金额:", amount);
     
-    // 改进：更精确地清理金额部分
-    let cleanedText = text;
-    
-    // 只移除明确的金额模式，避免影响其他数字
-    // 使用更精确的替换模式
-    cleanedText = cleanedText.replace(/(\d+)\s*(?:米|元)(?!\d)/g, ''); // 移除"X米"模式
-    cleanedText = cleanedText.replace(/各(?:数)?\s*[\d一二三四五六七八九十两俩]+\s*(?:米|元)?/gi, ''); // 移除"各X米"模式
-    cleanedText = cleanedText.replace(/包\s*\d+\s*(?:米|元)?(?:\s|$)/g, ''); // 移除"包X"、"包X米"、"包X元"模式
-    
-    console.log("清理后的文本:", cleanedText);
+    // 获取排除金额后的文本进行号码解析
+    const cleanedText = getTextExcludingAmount(text);
+    console.log("排除金额后的文本:", cleanedText);
 
-    // 提取数字（1-49）- 使用清理后的文本
+    // 1. 先解析明确的号码（1-49）
     const numMatches = cleanedText.match(/\b\d{1,2}\b/g);
     if (numMatches) {
         console.log("找到的数字:", numMatches);
         numMatches.forEach(numStr => {
             const n = parseInt(numStr);
             if (n >= 1 && n <= 49) {
-                // 不再检查是否是金额，因为我们已经清理了金额模式
                 console.log(`添加号码: ${n}`);
-                nums.add(n);
+                nums.push(n);
             }
         });
     }
 
-    // 解析尾数投注 - 使用改进的尾数解析函数
-    const tailNumbers = parseTailNumbers(text); // 使用原始文本，确保尾数解析正确
+    // 2. 解析尾数
+    const tailNumbers = parseTailNumbers(cleanedText);
     tailNumbers.forEach(n => {
-        nums.add(n);
+        nums.push(n);
         console.log(`添加尾数号码: ${n}`);
     });
     
-    // 解析生肖投注 - 使用原始文本
+    // 3. 解析生肖
     for (const [zodiac, zodiacNumbers] of Object.entries(ZODIAC)) {
-        if (text.includes(zodiac)) {
+        if (cleanedText.includes(zodiac)) {
             console.log(`找到生肖: ${zodiac}`);
-            zodiacNumbers.forEach(n => nums.add(n));
+            zodiacNumbers.forEach(n => nums.push(n));
         }
     }
     
-    // 修复：解析红蓝绿波 - 支持不带"波"字的颜色匹配
+    // 4. 解析颜色波
     const colorKeywords = {
         '红': '红波',
         '蓝': '蓝波', 
@@ -996,23 +1059,22 @@ function parseNumbers(text) {
     };
     
     for (const [keyword, colorKey] of Object.entries(colorKeywords)) {
-        if (text.includes(keyword)) {
+        if (cleanedText.includes(keyword)) {
             console.log(`找到颜色: ${keyword} -> ${colorKey}`);
-            COLOR_WAVE[colorKey].forEach(n => nums.add(n));
+            COLOR_WAVE[colorKey].forEach(n => nums.push(n));
         }
     }
     
-    // 解析单双 - 使用原始文本
+    // 5. 解析单双
     for (const [parityType, parityNumbers] of Object.entries(PARITY)) {
-        if (text.includes(parityType)) {
+        if (cleanedText.includes(parityType)) {
             console.log(`找到单双: ${parityType}`);
-            parityNumbers.forEach(n => nums.add(n));
+            parityNumbers.forEach(n => nums.push(n));
         }
     }
     
-    const result = Array.from(nums).sort((a, b) => a - b);
-    console.log("最终解析的号码:", result);
-    return result;
+    console.log("最终解析的号码（含重复）:", nums);
+    return nums;
 }
 
 // 获取所有开奖号码
@@ -1047,7 +1109,7 @@ function getWinningNumbers() {
     return winningNumbers;
 }
 
-// 检查投注是否中奖 - 修复普通投注默认按新澳计算
+// 检查投注是否中奖
 function checkWin(betType, numbers, winningNumbers) {
     switch(betType) {
         case 'macau':
@@ -1057,7 +1119,6 @@ function checkWin(betType, numbers, winningNumbers) {
         case 'hongkong':
             return winningNumbers.hongkong && numbers.includes(winningNumbers.hongkong);
         case 'normal':
-            // 修复：普通投注默认按新澳计算
             return winningNumbers.macau && numbers.includes(winningNumbers.macau);
         default:
             return false;
@@ -1084,7 +1145,7 @@ function getWinningDisplay(winningNumbers) {
     return parts.join(' | ') || '无有效开奖号码';
 }
 
-// 处理新旧同时出现的投注 - 自动拆分成两个投注
+// 处理新旧同时出现的投注
 function processNewOldBets(lines) {
     const processedLines = [];
     
@@ -1092,15 +1153,12 @@ function processNewOldBets(lines) {
         const trimmedLine = line.trim();
         if (!trimmedLine) return;
         
-        // 检查是否同时包含"新"和"旧"
         if (trimmedLine.includes('新') && trimmedLine.includes('旧')) {
             console.log("检测到新旧同时出现，自动拆分:", trimmedLine);
             
-            // 拆分成两个投注
             const newLine = trimmedLine.replace(/旧/g, '').trim();
             const oldLine = trimmedLine.replace(/新/g, '').trim();
             
-            // 添加拆分信息
             processedLines.push({
                 line: newLine,
                 betType: 'macau',
@@ -1117,10 +1175,9 @@ function processNewOldBets(lines) {
                 splitType: '旧澳'
             });
         } else {
-            // 不拆分，正常处理
             processedLines.push({
                 line: trimmedLine,
-                betType: null, // 稍后通过getBetType确定
+                betType: null,
                 originalLine: trimmedLine,
                 isSplit: false
             });
@@ -1133,7 +1190,6 @@ function processNewOldBets(lines) {
 function showResults() {
     const winningNumbers = getWinningNumbers();
     
-    // 检查是否有新澳开奖号码（因为普通投注依赖新澳）
     if (!winningNumbers.macau) {
         return alert('请至少输入新澳开奖号码！普通投注需要新澳开奖号码来计算中奖。');
     }
@@ -1168,7 +1224,6 @@ function showResults() {
             lines.push(...splitBetsByAmount(raw));
         });
 
-        // 处理新旧同时出现的投注
         const processedLines = processNewOldBets(lines);
 
         let allBets = [];
@@ -1190,7 +1245,6 @@ function showResults() {
             userCost += cost;
             userWin += winAmount;
             
-            // 计算累计中奖投注金额
             if (isWin) {
                 userWinBetAmount += perBet;
             }
@@ -1239,12 +1293,10 @@ function showResults() {
                     <td class="${i.isWin?'win':''}"><span class="money-red">${i.isWin?i.winAmount+' 元':'-'}</span></td>
                 </tr>`;
                 
-                // 显示拆分信息
                 if (i.isSplit) {
                     html += `<tr><td colspan="4" class="split-info">📝 自动拆分自: "${i.originalLine}" → ${i.splitType}</td></tr>`;
                 }
                 
-                // 调试信息：显示解析出的号码
                 let matchInfo = `解析号码: ${i.numbers.join(', ')} | 单注金额: ${i.perBet}米 | 类型: ${i.betType}`;
                 if (i.betType === 'normal') {
                     matchInfo += ` | 匹配: 新澳${winningNumbers.macau}`;
@@ -1281,7 +1333,6 @@ function showResults() {
         <span class="zodiac-display"> 今日生肖：${getTodayZodiacDisplay(winningNumbers)}</span>
     </div>`;
 
-    // 保存当前结果用于记录
     currentResults = {
         winningNumbers,
         userData,
@@ -1335,7 +1386,7 @@ function testSplit() {
     alert(result);
 }
 
-// 初始化 - 修复：确保在页面加载完成后初始化
+// 初始化
 document.addEventListener('DOMContentLoaded', function() {
     initHistory();
 });
