@@ -871,15 +871,35 @@ function extractDigitsFromText(text) {
     return digits;
 }
 
-// 改进的尾数解析函数 - 避免重复添加相同的尾数号码
+// 重写尾数解析函数 - 修复点号尾数重复问题
 function parseTailNumbers(text) {
     const nums = [];
     console.log("尾数解析文本:", text);
     
-    // 提取所有尾数数字
-    const tailDigits = [];
+    // 1. 点号尾数格式（1.2.3尾） - 修复版
+    const dotTailMatch = text.match(/(\d+(?:\.\d+)*)尾/);
+    if (dotTailMatch) {
+        const bases = dotTailMatch[1].split('.').map(n => parseInt(n, 10));
+        console.log("找到点号尾数格式, 尾数:", bases);
+        
+        // 直接收集这些尾数对应的所有号码
+        bases.forEach(base => {
+            if (base >= 0 && base <= 9 && TAIL[base]) {
+                // 只添加尾数对应的号码
+                TAIL[base].forEach(n => {
+                    if (!nums.includes(n)) {
+                        nums.push(n);
+                    }
+                });
+                console.log(`尾数 ${base} 对应的号码:`, TAIL[base]);
+            }
+        });
+        
+        console.log("点号尾数格式解析结果:", nums);
+        return nums;
+    }
     
-    // 1. 尾包X格式（中文或数字）
+    // 2. 尾包X格式（中文或数字）
     const tailPackMatch = text.match(/尾\s*包\s*([\d一二三四五六七八九十两俩百\s\-、,，.]+)/);
     if (tailPackMatch) {
         const tailPart = tailPackMatch[1];
@@ -887,13 +907,20 @@ function parseTailNumbers(text) {
         
         const digits = extractDigitsFromText(tailPart);
         digits.forEach(digit => {
-            if (digit >= 0 && digit <= 9 && !tailDigits.includes(digit)) {
-                tailDigits.push(digit);
+            if (digit >= 0 && digit <= 9 && TAIL[digit]) {
+                TAIL[digit].forEach(n => {
+                    if (!nums.includes(n)) {
+                        nums.push(n);
+                    }
+                });
             }
         });
+        
+        console.log("尾包格式解析结果:", nums);
+        return nums;
     }
     
-    // 2. 包X尾格式（中文或数字）
+    // 3. 包X尾格式（中文或数字）
     const packTailMatch = text.match(/包\s*([\d一二三四五六七八九十两俩百\s\-、,，.]+)\s*尾/);
     if (packTailMatch && !text.includes('尾包')) {
         const tailPart = packTailMatch[1];
@@ -901,23 +928,17 @@ function parseTailNumbers(text) {
         
         const digits = extractDigitsFromText(tailPart);
         digits.forEach(digit => {
-            if (digit >= 0 && digit <= 9 && !tailDigits.includes(digit)) {
-                tailDigits.push(digit);
+            if (digit >= 0 && digit <= 9 && TAIL[digit]) {
+                TAIL[digit].forEach(n => {
+                    if (!nums.includes(n)) {
+                        nums.push(n);
+                    }
+                });
             }
         });
-    }
-    
-    // 3. 点号尾数格式（1.2.3尾）
-    const dotTailMatch = text.match(/(\d+(?:\.\d+)*)\s*尾/);
-    if (dotTailMatch && !text.includes('包') && !text.includes('尾包')) {
-        const digitsStr = dotTailMatch[1];
-        console.log("找到点号尾数格式:", digitsStr);
-        const digits = digitsStr.split('.').map(d => parseInt(d));
-        digits.forEach(digit => {
-            if (digit >= 0 && digit <= 9 && !tailDigits.includes(digit)) {
-                tailDigits.push(digit);
-            }
-        });
+        
+        console.log("包尾格式解析结果:", nums);
+        return nums;
     }
     
     // 4. 连续尾数格式（123尾）
@@ -925,26 +946,21 @@ function parseTailNumbers(text) {
     if (continuousTailMatch && !text.includes('包') && !text.includes('.') && !text.includes('尾包')) {
         const digitsStr = continuousTailMatch[1];
         console.log("找到连续尾数格式:", digitsStr);
+        
         const digits = digitsStr.split('').map(d => parseInt(d));
         digits.forEach(digit => {
-            if (digit >= 0 && digit <= 9 && !tailDigits.includes(digit)) {
-                tailDigits.push(digit);
+            if (digit >= 0 && digit <= 9 && TAIL[digit]) {
+                TAIL[digit].forEach(n => {
+                    if (!nums.includes(n)) {
+                        nums.push(n);
+                    }
+                });
             }
         });
+        
+        console.log("连续尾数格式解析结果:", nums);
+        return nums;
     }
-    
-    // 5. 将尾数数字转换为对应的号码
-    tailDigits.forEach(digit => {
-        if (TAIL[digit]) {
-            // 确保没有重复添加相同的号码
-            TAIL[digit].forEach(n => {
-                if (!nums.includes(n)) {
-                    nums.push(n);
-                }
-            });
-            console.log(`尾数 ${digit} 对应的号码:`, TAIL[digit]);
-        }
-    });
     
     console.log("尾数解析结果:", nums);
     return nums;
@@ -1061,72 +1077,101 @@ function parseNumbers(text) {
     
     console.log("是否是尾数投注:", isTailBet);
     
-    // 1. 如果是尾数投注，使用尾数解析（去重）
-    if (isTailBet) {
-        // 尾数投注：只解析尾数，不去重直接号码（因为没有直接号码）
+    // 如果是点号尾数格式（如1.2.3尾），直接调用尾数解析函数
+    const isDotTailBet = /(\d+(?:\.\d+)*)尾/.test(cleanedText);
+    console.log("是否是点号尾数格式:", isDotTailBet);
+    
+    if (isDotTailBet) {
+        // 点号尾数格式：只解析尾数，不添加其他号码
         const tailNumbers = parseTailNumbers(cleanedText);
-        // 尾数解析函数已经返回去重后的号码
         tailNumbers.forEach(n => {
-            nums.push(n);
-            console.log(`添加尾数号码: ${n}`);
+            if (!nums.includes(n)) {
+                nums.push(n);
+            }
+        });
+        console.log("点号尾数格式最终解析结果:", nums);
+        return nums;
+    }
+    
+    // 1. 如果是其他尾数投注，使用尾数解析
+    if (isTailBet) {
+        // 其他尾数投注：只解析尾数
+        const tailNumbers = parseTailNumbers(cleanedText);
+        tailNumbers.forEach(n => {
+            if (!nums.includes(n)) {
+                nums.push(n);
+            }
         });
         
-        // 尾数投注不解析直接号码、生肖、颜色波、单双
-        console.log("尾数投注，跳过直接号码解析");
-    } else {
-        // 2. 非尾数投注，解析所有类型号码（保留重复）
-        
-        // 先解析直接号码（保留重复）
-        const numMatches = cleanedText.match(/\b\d{1,2}\b/g);
-        if (numMatches) {
-            console.log("找到的直接号码:", numMatches);
-            numMatches.forEach(numStr => {
-                const n = parseInt(numStr);
-                if (n >= 1 && n <= 49) {
-                    console.log(`添加直接号码: ${n}`);
-                    nums.push(n); // 直接号码保留重复
+        console.log("其他尾数投注解析结果:", nums);
+        return nums;
+    }
+    
+    // 2. 非尾数投注，解析所有类型号码
+    // 先解析直接号码（保留重复）
+    const numMatches = cleanedText.match(/\b\d{1,2}\b/g);
+    if (numMatches) {
+        console.log("找到的直接号码:", numMatches);
+        numMatches.forEach(numStr => {
+            const n = parseInt(numStr);
+            if (n >= 1 && n <= 49) {
+                console.log(`添加直接号码: ${n}`);
+                nums.push(n); // 直接号码保留重复
+            }
+        });
+    }
+    
+    // 解析尾数格式（非点号格式）
+    const tailNumbers = parseTailNumbers(cleanedText);
+    tailNumbers.forEach(n => {
+        if (!nums.includes(n)) {
+            nums.push(n);
+            console.log(`添加尾数格式号码: ${n}`);
+        }
+    });
+    
+    // 解析生肖
+    for (const [zodiac, zodiacNumbers] of Object.entries(ZODIAC)) {
+        if (cleanedText.includes(zodiac)) {
+            console.log(`找到生肖: ${zodiac}`);
+            zodiacNumbers.forEach(n => {
+                if (!nums.includes(n)) {
+                    nums.push(n);
                 }
             });
         }
-        
-        // 解析尾数格式（不去重）
-        const tailNumbers = parseTailNumbers(cleanedText);
-        tailNumbers.forEach(n => {
-            nums.push(n);
-            console.log(`添加尾数格式号码: ${n}`);
-        });
-        
-        // 解析生肖
-        for (const [zodiac, zodiacNumbers] of Object.entries(ZODIAC)) {
-            if (cleanedText.includes(zodiac)) {
-                console.log(`找到生肖: ${zodiac}`);
-                zodiacNumbers.forEach(n => nums.push(n));
-            }
+    }
+    
+    // 解析颜色波
+    const colorKeywords = {
+        '红': '红波',
+        '蓝': '蓝波', 
+        '绿': '绿波',
+        '红波': '红波',
+        '蓝波': '蓝波',
+        '绿波': '绿波'
+    };
+    
+    for (const [keyword, colorKey] of Object.entries(colorKeywords)) {
+        if (cleanedText.includes(keyword)) {
+            console.log(`找到颜色: ${keyword} -> ${colorKey}`);
+            COLOR_WAVE[colorKey].forEach(n => {
+                if (!nums.includes(n)) {
+                    nums.push(n);
+                }
+            });
         }
-        
-        // 解析颜色波
-        const colorKeywords = {
-            '红': '红波',
-            '蓝': '蓝波', 
-            '绿': '绿波',
-            '红波': '红波',
-            '蓝波': '蓝波',
-            '绿波': '绿波'
-        };
-        
-        for (const [keyword, colorKey] of Object.entries(colorKeywords)) {
-            if (cleanedText.includes(keyword)) {
-                console.log(`找到颜色: ${keyword} -> ${colorKey}`);
-                COLOR_WAVE[colorKey].forEach(n => nums.push(n));
-            }
-        }
-        
-        // 解析单双
-        for (const [parityType, parityNumbers] of Object.entries(PARITY)) {
-            if (cleanedText.includes(parityType)) {
-                console.log(`找到单双: ${parityType}`);
-                parityNumbers.forEach(n => nums.push(n));
-            }
+    }
+    
+    // 解析单双
+    for (const [parityType, parityNumbers] of Object.entries(PARITY)) {
+        if (cleanedText.includes(parityType)) {
+            console.log(`找到单双: ${parityType}`);
+            parityNumbers.forEach(n => {
+                if (!nums.includes(n)) {
+                    nums.push(n);
+                }
+            });
         }
     }
     
