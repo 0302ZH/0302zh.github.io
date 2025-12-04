@@ -346,7 +346,10 @@
 包0、8尾各50米07-43-23-35-47各30米新
 鼠龙猴各15米蛇各10米旧
 红蓝各数3米新
-双各数3米新澳门"></textarea>
+双各数3米新澳门
+0头各5米
+1.2.3头各10米
+包23头各15米"></textarea>
     </div>
 </div>
 
@@ -411,6 +414,15 @@ const TAIL = {
     7: [7, 17, 27, 37, 47],
     8: [8, 18, 28, 38, 48],
     9: [9, 19, 29, 39, 49]
+};
+
+// 头数映射（0-4头）
+const HEAD = {
+    0: [1, 2, 3, 4, 5, 6, 7, 8, 9],           // 01-09
+    1: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19], // 10-19
+    2: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29], // 20-29
+    3: [30, 31, 32, 33, 34, 35, 36, 37, 38, 39], // 30-39
+    4: [40, 41, 42, 43, 44, 45, 46, 47, 48, 49]  // 40-49
 };
 
 // 修正后的生肖映射（根据用户提供的2025年生肖49码对照表）
@@ -824,10 +836,10 @@ function splitBetsByAmount(text) {
     return lines;
 }
 
-// 判断投注类型
+// 判断投注类型 - 增强版，支持"香"作为香港简写
 function getBetType(line) {
     const clean = line.trim();
-    if (/香港/.test(clean)) return 'hongkong';
+    if (/香港|香(?![港澳]|口|水)/.test(clean)) return 'hongkong';
     if (/澳门|新澳|新/.test(clean)) return 'macau';
     if (/旧/.test(clean)) return 'old-macau';
     if (/^新\s*[.\s]?\s*\d/.test(clean)) return 'macau';
@@ -840,8 +852,8 @@ function getBetType(line) {
 function getBetTypeLabel(betType) {
     switch(betType) {
         case 'hongkong': return '<span class="bet-type hongkong">香港</span>';
-        case 'macau': return '<span class="bet-type macau">澳门</span>';
-        case 'old-macau': return '<span class="bet-type old-macau">旧澳门</span>';
+        case 'macau': return '<span class="bet-type macau">新澳</span>';
+        case 'old-macau': return '<span class="bet-type old-macau">旧澳</span>';
         default: return '<span class="bet-type normal">普通</span>';
     }
 }
@@ -966,27 +978,100 @@ function parseTailNumbers(text) {
     return nums;
 }
 
+// 头数解析函数
+function parseHeadNumbers(text) {
+    const nums = [];
+    console.log("头数解析文本:", text);
+    
+    // 1. 点号头数格式（1.2.3头）
+    const dotHeadMatch = text.match(/(\d+(?:\.\d+)*)头/);
+    if (dotHeadMatch) {
+        const bases = dotHeadMatch[1].split('.').map(n => parseInt(n, 10));
+        console.log("找到点号头数格式, 头数:", bases);
+        
+        // 直接收集这些头数对应的所有号码
+        bases.forEach(base => {
+            if (base >= 0 && base <= 4 && HEAD[base]) {
+                HEAD[base].forEach(n => {
+                    if (!nums.includes(n)) {
+                        nums.push(n);
+                    }
+                });
+                console.log(`头数 ${base} 对应的号码:`, HEAD[base]);
+            }
+        });
+        
+        console.log("点号头数格式解析结果:", nums);
+        return nums;
+    }
+    
+    // 2. 包X头格式
+    const packHeadMatch = text.match(/包\s*([\d一二三四五六七八九十两俩百\s\-、,，.]+)\s*头/);
+    if (packHeadMatch) {
+        const headPart = packHeadMatch[1];
+        console.log("找到包头格式:", headPart);
+        
+        const digits = extractDigitsFromText(headPart);
+        digits.forEach(digit => {
+            if (digit >= 0 && digit <= 4 && HEAD[digit]) {
+                HEAD[digit].forEach(n => {
+                    if (!nums.includes(n)) {
+                        nums.push(n);
+                    }
+                });
+            }
+        });
+        
+        console.log("包头格式解析结果:", nums);
+        return nums;
+    }
+    
+    // 3. 连续头数格式（123头）
+    const continuousHeadMatch = text.match(/(\d+)\s*头/);
+    if (continuousHeadMatch && !text.includes('包')) {
+        const digitsStr = continuousHeadMatch[1];
+        console.log("找到连续头数格式:", digitsStr);
+        
+        const digits = digitsStr.split('').map(d => parseInt(d));
+        digits.forEach(digit => {
+            if (digit >= 0 && digit <= 4 && HEAD[digit]) {
+                HEAD[digit].forEach(n => {
+                    if (!nums.includes(n)) {
+                        nums.push(n);
+                    }
+                });
+            }
+        });
+        
+        console.log("连续头数格式解析结果:", nums);
+        return nums;
+    }
+    
+    console.log("头数解析结果:", nums);
+    return nums;
+}
+
 // 提取金额 - 修复版：正确识别"包X"作为金额
 function extractAmount(line) {
     console.log("解析金额:", line);
     
-    // 1. 优先匹配"包X"格式（阿拉伯数字）- 必须是独立的"包X"，不能是"包X尾"
-    let match = line.match(/包\s*(\d+)\s*(?:米|元)?(?=\s|$|新|旧|香港|澳门)/i);
+    // 1. 优先匹配"包X"格式（阿拉伯数字）- 必须是独立的"包X"，不能是"包X尾"或"包X头"
+    let match = line.match(/包\s*(\d+)\s*(?:米|元)?(?=\s|$|新|旧|香港|澳门|头|尾)/i);
     if (match) {
-        // 检查后面是否有"尾"字
+        // 检查后面是否有"尾"字或"头"字
         const checkTail = line.substring(match.index + match[0].length);
-        if (!checkTail.includes("尾")) {
+        if (!checkTail.includes("尾") && !checkTail.includes("头")) {
             console.log("匹配包X格式（阿拉伯数字）:", match[1]);
             return parseInt(match[1]);
         }
     }
     
-    // 2. 优先匹配"包X"格式（中文数字）- 必须是独立的"包X"，不能是"包X尾"
-    match = line.match(/包\s*([一二三四五六七八九十两俩百]+)\s*(?:米|元)?(?=\s|$|新|旧|香港|澳门)/i);
+    // 2. 优先匹配"包X"格式（中文数字）- 必须是独立的"包X"，不能是"包X尾"或"包X头"
+    match = line.match(/包\s*([一二三四五六七八九十两俩百]+)\s*(?:米|元)?(?=\s|$|新|旧|香港|澳门|头|尾)/i);
     if (match) {
-        // 检查后面是否有"尾"字
+        // 检查后面是否有"尾"字或"头"字
         const checkTail = line.substring(match.index + match[0].length);
-        if (!checkTail.includes("尾")) {
+        if (!checkTail.includes("尾") && !checkTail.includes("头")) {
             const chineseNum = match[1];
             console.log("匹配包X格式（中文数字）:", chineseNum);
             return chineseToNumber(chineseNum);
@@ -1045,7 +1130,7 @@ function extractAmount(line) {
 function getTextExcludingAmount(text) {
     let result = text;
     
-    // 移除"包X"金额（但保留"包X尾"）
+    // 移除"包X"金额（但保留"包X尾"和"包X头"）
     result = result.replace(/包\s*[\d一二三四五六七八九十两俩百]+\s*(?:米|元)?(?=\s|$|新|旧|香港|澳门)/gi, '');
     
     // 移除"各X米"金额
@@ -1057,7 +1142,7 @@ function getTextExcludingAmount(text) {
     return result.trim();
 }
 
-// 解析号码（修复版）- 区分尾数投注和直接号码投注，解决重复问题
+// 解析号码（增强版）- 添加头数投注支持
 function parseNumbers(text) {
     const nums = [];
     console.log("开始解析号码:", text);
@@ -1077,9 +1162,21 @@ function parseNumbers(text) {
     
     console.log("是否是尾数投注:", isTailBet);
     
+    // 判断是否是头数投注（包含"头"字且是头数投注格式）
+    const isHeadBet = cleanedText.includes('头') && 
+                     (cleanedText.includes('包') || 
+                      cleanedText.includes('各') || 
+                      /头.*包|包.*头/.test(cleanedText));
+    
+    console.log("是否是头数投注:", isHeadBet);
+    
     // 如果是点号尾数格式（如1.2.3尾），直接调用尾数解析函数
     const isDotTailBet = /(\d+(?:\.\d+)*)尾/.test(cleanedText);
     console.log("是否是点号尾数格式:", isDotTailBet);
+    
+    // 如果是点号头数格式（如1.2.3头），直接调用头数解析函数
+    const isDotHeadBet = /(\d+(?:\.\d+)*)头/.test(cleanedText);
+    console.log("是否是点号头数格式:", isDotHeadBet);
     
     if (isDotTailBet) {
         // 点号尾数格式：只解析尾数，不添加其他号码
@@ -1090,6 +1187,18 @@ function parseNumbers(text) {
             }
         });
         console.log("点号尾数格式最终解析结果:", nums);
+        return nums;
+    }
+    
+    if (isDotHeadBet) {
+        // 点号头数格式：只解析头数，不添加其他号码
+        const headNumbers = parseHeadNumbers(cleanedText);
+        headNumbers.forEach(n => {
+            if (!nums.includes(n)) {
+                nums.push(n);
+            }
+        });
+        console.log("点号头数格式最终解析结果:", nums);
         return nums;
     }
     
@@ -1107,7 +1216,21 @@ function parseNumbers(text) {
         return nums;
     }
     
-    // 2. 非尾数投注，解析所有类型号码
+    // 2. 如果是其他头数投注，使用头数解析
+    if (isHeadBet) {
+        // 其他头数投注：只解析头数
+        const headNumbers = parseHeadNumbers(cleanedText);
+        headNumbers.forEach(n => {
+            if (!nums.includes(n)) {
+                nums.push(n);
+            }
+        });
+        
+        console.log("其他头数投注解析结果:", nums);
+        return nums;
+    }
+    
+    // 3. 非尾数/头数投注，解析所有类型号码
     // 先解析直接号码（保留重复）
     const numMatches = cleanedText.match(/\b\d{1,2}\b/g);
     if (numMatches) {
@@ -1127,6 +1250,15 @@ function parseNumbers(text) {
         if (!nums.includes(n)) {
             nums.push(n);
             console.log(`添加尾数格式号码: ${n}`);
+        }
+    });
+    
+    // 解析头数格式（非点号格式）
+    const headNumbers = parseHeadNumbers(cleanedText);
+    headNumbers.forEach(n => {
+        if (!nums.includes(n)) {
+            nums.push(n);
+            console.log(`添加头数格式号码: ${n}`);
         }
     });
     
@@ -1213,26 +1345,40 @@ function getWinningNumbers() {
 
 // 检查投注是否中奖
 function checkWin(betType, numbers, winningNumbers) {
+    const winningNum = getWinningNumByBetType(betType, winningNumbers);
+    if (!winningNum) return false;
+    
+    return numbers.includes(winningNum);
+}
+
+// 辅助函数：根据投注类型获取开奖号码
+function getWinningNumByBetType(betType, winningNumbers) {
     switch(betType) {
         case 'macau':
-            return winningNumbers.macau && numbers.includes(winningNumbers.macau);
+            return winningNumbers.macau;
         case 'old-macau':
-            return winningNumbers.oldMacau && numbers.includes(winningNumbers.oldMacau);
+            return winningNumbers.oldMacau;
         case 'hongkong':
-            return winningNumbers.hongkong && numbers.includes(winningNumbers.hongkong);
+            return winningNumbers.hongkong;
         case 'normal':
-            return winningNumbers.macau && numbers.includes(winningNumbers.macau);
+            return winningNumbers.macau;
         default:
-            return false;
+            return null;
     }
 }
 
-// 获取中奖金额
+// 获取中奖金额 - 修复版：支持重复号码多次中奖
 function getWinAmount(betType, perBet, numbers, winningNumbers) {
     let winAmount = 0;
     
-    if (checkWin(betType, numbers, winningNumbers)) {
-        winAmount = perBet * 47;
+    // 获取开奖号码
+    const winningNum = getWinningNumByBetType(betType, winningNumbers);
+    
+    if (winningNum) {
+        // 计算中奖号码在投注号码中出现的次数
+        const winCount = numbers.filter(num => num === winningNum).length;
+        winAmount = winCount * perBet * 47;
+        console.log(`中奖号码 ${winningNum} 在投注中出现了 ${winCount} 次，每注 ${perBet} 米，总中奖金额: ${winAmount}`);
     }
     
     return winAmount;
@@ -1351,7 +1497,12 @@ function showResults() {
             userWin += winAmount;
             
             if (isWin) {
-                userWinBetAmount += perBet;
+                // 计算中奖投注金额（考虑重复号码）
+                const winningNum = getWinningNumByBetType(betType, winningNumbers);
+                if (winningNum) {
+                    const winCount = numbers.filter(num => num === winningNum).length;
+                    userWinBetAmount += winCount * perBet;
+                }
             }
 
             const betItem = { 
@@ -1411,15 +1562,21 @@ function showResults() {
                     html += `<tr><td colspan="4" class="split-info">📝 自动拆分自: "${i.originalLine}" → ${i.splitType}</td></tr>`;
                 }
                 
-                let matchInfo = `解析号码: ${i.numbers.join(', ')} | 单注金额: ${i.perBet}米 | 类型: ${i.betType}`;
-                if (i.betType === 'normal') {
-                    matchInfo += ` | 匹配: 新澳${winningNumbers.macau}`;
-                } else if (i.betType === 'macau' && winningNumbers.macau) {
-                    matchInfo += ` | 匹配: 新澳${winningNumbers.macau}`;
-                } else if (i.betType === 'old-macau' && winningNumbers.oldMacau) {
-                    matchInfo += ` | 匹配: 旧澳${winningNumbers.oldMacau}`;
-                } else if (i.betType === 'hongkong' && winningNumbers.hongkong) {
-                    matchInfo += ` | 匹配: 香港${winningNumbers.hongkong}`;
+                // 统计号码出现次数
+                const numberCounts = {};
+                i.numbers.forEach(num => {
+                    numberCounts[num] = (numberCounts[num] || 0) + 1;
+                });
+                
+                let numbersDisplay = Object.entries(numberCounts)
+                    .map(([num, count]) => count > 1 ? `${num}(${count}次)` : num)
+                    .join(', ');
+                
+                const winningNum = getWinningNumByBetType(i.betType, winningNumbers);
+                let matchInfo = `解析号码: ${numbersDisplay} | 单注金额: ${i.perBet}米 | 类型: ${i.betType}`;
+                if (winningNum) {
+                    const winCount = i.numbers.filter(num => num === winningNum).length;
+                    matchInfo += ` | 匹配: ${winningNum} (出现${winCount}次)`;
                 }
                 html += `<tr><td colspan="4" class="debug-info">${matchInfo}</td></tr>`;
             });
