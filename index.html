@@ -7,7 +7,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Ping Fang SC', sans-serif;
             background: #f5f5f5;
             padding: 16px;
             color: #333;
@@ -27,22 +27,26 @@
             margin-bottom: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
+        /* 用户名行布局：输入框 + 两个按钮 */
         .user-header {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             margin-bottom: 12px;
         }
         input[type="text"], input[type="number"] {
-            flex: 1;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 8px;
             font-size: 16px;
         }
+        input[type="text"] {
+            flex: 1;
+            min-width: 100px;
+        }
         textarea {
             width: 100%;
-            height: 100px;
+            height: 140px;
             padding: 12px;
             border: 1px solid #eee;
             border-radius: 8px;
@@ -51,18 +55,28 @@
             background: #fafafa;
         }
         button {
-            padding: 14px;
-            margin: 10px 0;
+            padding: 10px 12px;
             background: #2d8cf0;
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: 8px;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
+            white-space: nowrap;
         }
         button.back { background: #666; }
         button.delete { background: #f53f3f; }
+        /* 强力解析按钮样式（红色） */
+        button.strong-parse {
+            background: #ff3b30;
+            font-weight: bold;
+        }
+        /* 自动换行按钮样式（绿色） */
+        button.auto-wrap {
+            background: #34c759;
+            font-weight: bold;
+        }
         .result-card {
             background: white;
             border-radius: 12px;
@@ -296,10 +310,14 @@
     <h2>🎯 精准投注计算器（多开奖号码版）</h2>
     <p>✅ 支持中文/阿拉伯数字｜米/块单位｜多开奖号码｜自动识别投注类型</p>
 </div>
+
 <div id="users-container">
+    <!-- 初始用户1 -->
     <div class="user-card" id="user-1">
         <div class="user-header">
             <input type="text" id="name-1" placeholder="输入用户名" />
+            <button class="strong-parse" onclick="parseUserBets(1)">🔴 强力解析</button>
+            <button class="auto-wrap" onclick="autoWrapUserBets(1)">🟢 自动换行</button>
         </div>
         <div class="name-selector">
             <button onclick="selectName('name-1', '黄完')">黄完</button>
@@ -321,9 +339,11 @@
 二尾各数三块（解析2尾号码）"></textarea>
     </div>
 </div>
+
 <div class="winning-inputs">
     <div class="winning-group">
-        <label>🎲 开奖号码设置（1-49）：</label>
+        <!-- 1. 这里加了 (47倍) -->
+        <label>🎲 开奖号码设置（1-49）(47倍)</label>
         <div class="winning-input-row">
             <div class="winning-type macau-bg">新澳</div>
             <input type="number" id="winning-macau" min="1" max="49" placeholder="请输入新澳开奖号码" />
@@ -337,17 +357,15 @@
             <input type="number" id="winning-hongkong" min="1" max="49" placeholder="请输入香港开奖号码" />
         </div>
     </div>
-    <div style="font-size: 14px; color: #666; margin-top: 8px;">
-        💡 提示：支持中文句号（。）、空格分隔号码，支持“米”“块”作为金额单位（如各3块、包三块）
-    </div>
 </div>
+
 <div class="action-buttons">
     <button onclick="addUser()">➕ 添加用户</button>
     <button onclick="showResults()">🏆 中奖结果</button>
-    <button onclick="testSplit()">🧪 测试拆分</button>
-    <button onclick="saveRecord()">💾 保存记录</button>
     <button onclick="showHistory()">📚 历史记录</button>
+    <button onclick="saveRecord()">💾 保存记录</button>
 </div>
+
 <div id="results-container">
     <div class="header">
         <h2>🏆 中奖结果</h2>
@@ -357,6 +375,7 @@
     <div id="results-inner"></div>
     <button onclick="hideResults()" class="back">⬅️ 隐藏结果</button>
 </div>
+
 <div id="history-container" class="history-section" style="display: none;">
     <div class="header">
         <h2>📚 历史记录</h2>
@@ -365,7 +384,59 @@
     <div id="history-list"></div>
     <button onclick="hideHistory()" class="back">⬅️ 返回</button>
 </div>
+
 <script>
+// ===================== 1. 单个用户强力解析函数 =====================
+function parseUserBets(userId) {
+    const ta = document.getElementById(`bets-${userId}`);
+    let val = ta.value;
+    // 只保留【数字、中文、米、块】，清除其他所有符号
+    val = val.replace(/[^0-9\u4e00-\u9fa5米块]/g, '');
+    // 匹配所有连续数字（≥4位），按两位一组加.拆分
+    val = val.replace(/(\d{4,})/g, (match) => {
+        let parts = [];
+        for (let i = 0; i < match.length; i += 2) {
+            let two = match.slice(i, i + 2);
+            if (two.length === 2) {
+                parts.push(two);
+            }
+        }
+        return parts.join('.');
+    });
+    ta.value = val;
+}
+
+// ===================== 修复：单个用户自动换行函数 =====================
+function autoWrapUserBets(userId) {
+    const ta = document.getElementById(`bets-${userId}`);
+    let val = ta.value.trim();
+    if (!val) return;
+
+    // 统一多余空格
+    val = val.replace(/\s+/g, ' ');
+    
+    // 在【各数字米 / 各数字块 / 各数字元】后面强制换行
+    val = val.replace(/(各\d+[米块元])/g, '$1\n');
+    
+    // 去掉多余空行
+    val = val.replace(/\n+/g, '\n').trim();
+    
+    ta.value = val;
+}
+
+// ===================== 展开/折叠（带图标切换） =====================
+function toggleUserTable(index) {
+    const table = document.getElementById(`bet-table-${index}`);
+    const btn = document.getElementById(`toggle-btn-${index}`);
+    if (table.style.display === 'none') {
+        table.style.display = 'table';
+        btn.innerHTML = '折叠 🔼';
+    } else {
+        table.style.display = 'none';
+        btn.innerHTML = '展开 🔽';
+    }
+}
+
 // 1. 基础数据映射
 const CHINESE_NUM_MAP = {
     '零':0, '一':1, '二':2, '三':3, '四':4, '五':5,
@@ -392,29 +463,40 @@ const HEAD = {
     10:[10],11:[11],12:[12],13:[13],14:[14],15:[15],16:[16],17:[17],18:[18],19:[19],
     20:[20],21:[21],22:[22],23:[23],24:[24],25:[25],26:[26],27:[27],28:[28],29:[29]
 };
+// ===================== 你最新的号码（只改这里，其他代码不动） =====================
 const ZODIAC = {
-    兔: [3, 15, 27, 39],
-    龙: [2, 14, 26, 38],
-    蛇: [1, 13, 25, 37, 49],
-    马: [12, 24, 36, 48],
-    羊: [11, 23, 35, 47],
-    猴: [10, 22, 34, 46],
-    鸡: [9, 21, 33, 45],
-    狗: [8, 20, 32, 44],
-    猪: [7, 19, 31, 43],
-    鼠: [6, 18, 30, 42],
-    牛: [5, 17, 29, 41],
-    虎: [4, 16, 28, 40]
+    马: [1,13,25,37,49],
+    羊: [12,24,36,48],
+    猴: [11,23,35,47],
+    鸡: [10,22,34,46],
+    狗: [9,21,33,45],
+    猪: [8,20,32,44],
+    鼠: [7,19,31,43],
+    牛: [6,18,30,42],
+    虎: [5,17,29,41],
+    兔: [4,16,28,40],
+    龙: [3,15,27,39],
+    蛇: [2,14,26,38]
 };
 const COLOR_WAVE = {
     红波: [1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46],
-    蓝波: [3,4,9,10,14,15,20,25,26,31,36,37,41,42,47,48],
-    绿波: [5,6,11,16,17,21,22,27,28,32,33,38,39,43,44,49]
+   蓝波: [3,4,9,10,14,15,20,25,26,31,36,37,41,42,47,48],
+   绿波: [5,6,11,16,17,21,22,27,28,32,33,38,39,43,44,49]
 };
 const PARITY = {
     单: [1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49],
     双: [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48]
 };
+// 新增：红单/红双/蓝单/蓝双/绿单/绿双（适配新/旧/香前缀）
+const COLOR_PARITY = {
+    红单: [1,7,13,19,23,29,35,45],
+    红双: [2,8,12,18,24,30,34,40,46],
+    蓝单: [3,9,15,25,31,37,41,47],
+    蓝双: [4,10,14,20,26,36,42,48],
+    绿单: [5,11,17,21,27,33,39,43,49],
+    绿双: [6,16,22,28,32,38,44]
+};
+// ==============================================================================
 
 // 2. 全局变量
 let userCount = 1;
@@ -505,6 +587,8 @@ function editRecord(id) {
         userCard.innerHTML = `
             <div class="user-header">
                 <input type="text" id="name-${idx+1}" value="${user.name}" placeholder="输入用户名" />
+                <button class="strong-parse" onclick="parseUserBets(${idx+1})">🔴 强力解析</button>
+                <button class="auto-wrap" onclick="autoWrapUserBets(${idx+1})">🟢 自动换行</button>
             </div>
             <div class="name-selector">
                 <button onclick="selectName('name-${idx+1}', '黄完')">黄完</button>
@@ -580,6 +664,8 @@ function loadRecord(id) {
         userCard.innerHTML = `
             <div class="user-header">
                 <input type="text" id="name-${idx+1}" value="${user.name}" placeholder="输入用户名" />
+                <button class="strong-parse" onclick="parseUserBets(${idx+1})">🔴 强力解析</button>
+                <button class="auto-wrap" onclick="autoWrapUserBets(${idx+1})">🟢 自动换行</button>
             </div>
             <div class="name-selector">
                 <button onclick="selectName('name-${idx+1}', '黄完')">黄完</button>
@@ -607,7 +693,7 @@ function hideHistory() {
     document.getElementById('history-container').style.display = 'none';
 }
 
-// 5. 添加用户功能
+// 5. 添加用户功能（新增用户自动带两个按钮）
 function addUser() {
     userCount++;
     const container = document.getElementById('users-container');
@@ -617,6 +703,8 @@ function addUser() {
     newUserCard.innerHTML = `
         <div class="user-header">
             <input type="text" id="name-${userCount}" placeholder="输入用户名" />
+            <button class="strong-parse" onclick="parseUserBets(${userCount})">🔴 强力解析</button>
+            <button class="auto-wrap" onclick="autoWrapUserBets(${userCount})">🟢 自动换行</button>
         </div>
         <div class="name-selector">
             <button onclick="selectName('name-${userCount}', '黄完')">黄完</button>
@@ -687,7 +775,7 @@ function splitBetsByAmount(text) {
     const amountReg = /(各|包)?\s*([\d一二三四五六七八九十两俩]+)\s*(米|块)/g;
     let match, lastIndex = 0;
     while ((match = amountReg.exec(cleanText)) !== null) {
-        const matchEnd = amountReg.lastIndex; // 修复：定义matchEnd
+        const matchEnd = amountReg.lastIndex;
         const betSegment = cleanText.substring(lastIndex, matchEnd).trim();
         if (betSegment) lines.push(betSegment);
         lastIndex = matchEnd;
@@ -754,7 +842,7 @@ function getTextExcludingAmount(text) {
     return result;
 }
 
-// 13. 号码解析
+// 13. 号码解析（已兼容红单/红双/蓝单/蓝双/绿单/绿双，以及新/旧/香前缀）
 function parseNumbers(text) {
     const cleanedText = getTextExcludingAmount(text);
     let nums = [];
@@ -779,6 +867,11 @@ function parseNumbers(text) {
         }
         for (const [pType, pNums] of Object.entries(PARITY)) {
             if (cleanedText.includes(pType)) nums.push(...pNums);
+        }
+        for (const [cpType, cpNums] of Object.entries(COLOR_PARITY)) {
+            if (cleanedText.includes(cpType) || cleanedText.includes(`新${cpType}`) || cleanedText.includes(`旧${cpType}`) || cleanedText.includes(`香${cpType}`)) {
+                nums.push(...cpNums);
+            }
         }
     }
     return nums;
@@ -853,7 +946,7 @@ function processNewOldBets(lines) {
     return processed;
 }
 
-// 17. 显示结果（核心修复：把<<th改为<th>）
+// 17. 显示结果
 function showResults() {
     try {
         const winning = getWinningNumbers();
@@ -883,7 +976,7 @@ function showResults() {
         const userStats = [];
         let totalCost = 0, totalWin = 0, totalWinBet = 0;
         
-        userData.forEach(user => {
+        userData.forEach((user, idx) => {
             const rawLines = user.bets.split('\n').filter(l => l.trim());
             const lines = [];
             rawLines.forEach(raw => lines.push(...splitBetsByAmount(raw)));
@@ -947,12 +1040,14 @@ function showResults() {
                 winBet: userWinBet
             });
             
-            // 核心修复1：表格表头用标准<th>，删除多余<
+            // 2. 去掉了47倍，按钮右移、放大、加图标
             const userHtml = `
                 <div class="result-card">
-                    <h3>👤 ${user.name}</h3>
-                    <div class="section-title">投注详情（47倍）</div>
-                    <table class="bet-table">
+                    <h3>👤 ${user.name} 
+                        <button id="toggle-btn-${idx}" onclick="toggleUserTable(${idx})" style="margin-left:12px; padding:8px 14px; font-size:15px; background:#ff9500; border:none; border-radius:6px; color:white; cursor:pointer;">展开 🔽</button>
+                    </h3>
+                    <div class="section-title">投注详情</div>
+                    <table class="bet-table" id="bet-table-${idx}" style="display:none;">
                         <tr>
                             <th>内容</th>
                             <th>号码数量</th>
@@ -983,7 +1078,6 @@ function showResults() {
             </div>
         `;
         
-        // 核心修复2：统计表格表头用标准<th>，删除多余<
         let statsHtml = `
             <div class="user-stats-table">
                 <h3>👥 用户详细统计</h3>
@@ -1029,31 +1123,6 @@ function showResults() {
 // 18. 辅助函数
 function hideResults() {
     document.getElementById('results-container').style.display = 'none';
-}
-function testSplit() {
-    const betText = document.getElementById('bets-1').value.trim();
-    if (!betText) {
-        alert('请先在用户1的投注框输入内容！');
-        return;
-    }
-    const lines = splitBetsByAmount(betText);
-    const processed = processNewOldBets(lines);
-    let result = `拆分结果（共${processed.length}条）：\n\n`;
-    processed.forEach((item, idx) => {
-        const nums = parseNumbers(item.line);
-        const perBet = extractAmount(item.line);
-        const betType = item.betType || getBetType(item.line);
-        const unitMatch = item.line.match(/(米|块)/);
-        const unit = unitMatch ? unitMatch[1] : '元';
-        const headTailDesc = item.line.includes('头') ? `头数: ${getDigits(item.line).join(', ')}` : (item.line.includes('尾') ? `尾数: ${getDigits(item.line).join(', ')}` : '');
-        result += `${idx+1}. 内容：${item.line}\n`;
-        result += `   类型：${betType === 'macau' ? '新澳' : betType === 'old-macau' ? '旧澳' : betType === 'hongkong' ? '香港' : '普通'}\n`;
-        result += `   ${headTailDesc}\n`;
-        result += `   金额：${perBet} ${unit}\n`;
-        result += `   号码：${nums.join(', ')}\n`;
-        result += `   号码个数：${nums.length} 个\n\n`;
-    });
-    alert(result);
 }
 
 // 初始化
