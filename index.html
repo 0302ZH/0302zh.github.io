@@ -793,7 +793,7 @@ function getDigits(text) {
     return digits;
 }
 
-// 8. 投注拆分：核心修复，先按行拆分，再拆分行内多个投注，兼容新旧后缀
+// 8. 投注拆分：新增支持「XX-XX米」「XX.XX米」格式
 function splitBetsByAmount(text) {
     // 1. 统一换行符，按换行拆分成独立行，保留行结构（不破坏新旧填入的后缀逻辑）
     const lines = text
@@ -802,9 +802,10 @@ function splitBetsByAmount(text) {
         .map(line => line.trim())
         .filter(line => line);
 
-    // 2. 对每一行，拆分行内用空格分隔的多个「XX各XX」投注项
+    // 2. 对每一行，拆分行内用空格分隔的投注项，支持两种格式：「XX各XX」、「XX[-.]XX米」
     const allBets = [];
-    const betRegex = /(?:^|\s)(.*?各(?:\d+|[一二三四五六七八九十两俩百]+)[^\s]*)(?=\s|$)/g;
+    // 正则匹配：支持「各XX」格式，和「-数字米」「.数字米」格式
+    const betRegex = /(?:^|\s)(.*?(?:各(?:数)?\s*(?:\d+|[一二三四五六七八九十两俩百]+)|[-.]\d+\s*米)[^\s]*)(?=\s|$)/g;
 
     lines.forEach(line => {
         let match;
@@ -815,7 +816,6 @@ function splitBetsByAmount(text) {
         }
     });
 
-    // 3. 返回所有拆分后的投注项
     return allBets;
 }
 
@@ -852,9 +852,13 @@ function parseHeadNumbers(text) {
     return nums;
 }
 
-// 11. 提取金额（支持门/元/米/块，中文/阿拉伯数字）
+// 11. 提取金额：新增支持「-XX米」「.XX米」格式
 function extractAmount(line) {
-    let match = line.match(/(包|各(?:数)?)+\s*([一二三四五六七八九十两俩百]+)\s*(?:米|块|元|门)?/i);
+    // 新增：匹配「-数字米」「.数字米」格式的金额，比如33-60米、14.60米
+    let match = line.match(/[-.]\s*(\d+)\s*米/i);
+    if (match) return parseInt(match[1]);
+    // 原有逻辑完全保留
+    match = line.match(/(包|各(?:数)?)+\s*([一二三四五六七八九十两俩百]+)\s*(?:米|块|元|门)?/i);
     if (match) return chineseToNumber(match[2]);
     match = line.match(/(包|各(?:数)?)+\s*(\d+)\s*(?:米|块|元|门)?(?=\s|$|新|旧|香港|澳门|头|尾)/i);
     if (match) return parseInt(match[2]);
@@ -870,9 +874,12 @@ function extractUnit(line) {
     return '元';
 }
 
-// 13. 移除金额和投注类型，保留号码/生肖内容
+// 13. 移除金额和投注类型：新增去掉「-XX米」「.XX米」格式的金额
 function getTextExcludingAmount(text) {
     let result = text;
+    // 新增：去掉「-数字米」「.数字米」格式的金额部分
+    result = result.replace(/[-.]\s*\d+\s*米/gi, '');
+    // 原有逻辑完全保留
     result = result.replace(/包\s*[一二三四五六七八九十两俩]+\s*(?:米|块|元|门)?/gi, '');
     result = result.replace(/各(?:数)?\s*[一二三四五六七八九十两俩]+\s*(?:米|块|元|门)?/gi, '');
     result = result.replace(/(包|各(?:数)?)+\s*\d+\s*(?:米|块|元|门)?(?=\s|$|新|旧|香港|澳门)/gi, '');
@@ -881,20 +888,32 @@ function getTextExcludingAmount(text) {
     return result;
 }
 
-// 14. 号码解析：保留原有逻辑，不去重
+// 14. 号码解析：新增支持「大数/小数」规则，原有逻辑完全保留
 function parseNumbers(text) {
     const cleanedText = getTextExcludingAmount(text);
-    const formatText = cleanedText
-        .replace(/-/g, '.')
-        .replace(/\s+/g, '.')
-        .replace(/\.+/g, '.')
-        .replace(/\.$/, '');
     let nums = [];
-    if (cleanedText.includes('尾')) {
+
+    // 新增：处理大数/小数规则
+    if (cleanedText.includes('大数')) {
+        // 大数：25-49
+        for (let i=25; i<=49; i++) nums.push(i);
+    } else if (cleanedText.includes('小数')) {
+        // 小数：1-24
+        for (let i=1; i<=24; i++) nums.push(i);
+    } 
+    // 原有逻辑：处理尾/头
+    else if (cleanedText.includes('尾')) {
         nums = parseTailNumbers(cleanedText);
     } else if (cleanedText.includes('头')) {
         nums = parseHeadNumbers(cleanedText);
-    } else {
+    } 
+    // 原有逻辑：处理普通号码、生肖、波色等
+    else {
+        const formatText = cleanedText
+            .replace(/-/g, '.')
+            .replace(/\s+/g, '.')
+            .replace(/\.+/g, '.')
+            .replace(/\.$/, '');
         const numMatches = formatText.match(/\b\d{1,2}\b/g);
         if (numMatches) {
             numMatches.forEach(match => {
@@ -956,7 +975,7 @@ function getWinningDisplay(winning) {
     return parts.join(' | ') || '无有效开奖号码';
 }
 
-// 17. 新旧投注处理（核心修复，确保带新旧的投注拆分成新澳和旧澳）
+// 17. 新旧投注处理
 function processNewOldBets(lines) {
     const processed = [];
     lines.forEach(line => {
@@ -1007,7 +1026,7 @@ function processNewOldBets(lines) {
     return processed;
 }
 
-// 给所有行加上后缀（新旧填入专用，保留行结构）
+// 给所有行加上后缀
 function applySuffixToAllLines(lines) {
     let suffix = '';
     for (let i = lines.length - 1; i >= 0; i--) {
