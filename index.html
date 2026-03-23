@@ -26,12 +26,15 @@
             padding: 16px;
             margin-bottom: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: relative;
         }
+        /* 固定按钮行，确保三个元素在同一行不换行 */
         .user-header {
             display: flex;
             align-items: center;
             gap: 8px;
             margin-bottom: 12px;
+            flex-wrap: nowrap;
         }
         input[type="text"], input[type="number"] {
             padding: 10px;
@@ -42,6 +45,7 @@
         input[type="text"] {
             flex: 1;
             min-width: 100px;
+            flex-shrink: 1;
         }
         textarea {
             width: 100%;
@@ -53,17 +57,29 @@
             resize: vertical;
             background: #fafafa;
         }
+        /* 新旧香外框：调整margin-top给顶部的删除按钮腾空间 */
         .old-new-box {
-            margin-top: 8px;
-            display: none;
+            margin-top: 35px;
+            margin-bottom: 16px;
+            background: #fff;
+            border: 2px solid #ffcc66;
+            border-radius: 12px;
+            padding: 12px;
+            position: relative;
         }
+        /* 新旧香输入框：高度60px，保留原有样式 */
         .old-new-textarea {
-            height: 100px;
-            background: #fff9e6;
-            border: 1px solid #ffcc66;
+            width: 100%;
+            height: 60px;
+            padding: 0;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            resize: vertical;
+            outline: none;
         }
         button {
-            padding: 10px 12px;
+            padding: 8px 10px;
             background: #2d8cf0;
             color: white;
             border: none;
@@ -72,6 +88,7 @@
             font-weight: bold;
             cursor: pointer;
             white-space: nowrap;
+            flex-shrink: 0;
         }
         button.back { background: #666; }
         button.delete { background: #f53f3f; }
@@ -314,29 +331,16 @@
 <body>
 <div class="header">
     <h2>🎯 精准投注计算器（多开奖号码版）</h2>
-    <p>✅ 支持中文/阿拉伯数字｜米/块单位｜多开奖号码｜自动识别投注类型</p>
+    <p>✅ 支持中文/阿拉伯数字｜米/块单位｜多开奖号码｜自动识别投注类型｜平特一肖</p>
 </div>
-
 <div id="users-container">
+    <!-- 固定按钮顺序：输入框 → 选择名字 → 新旧香 -->
     <div class="user-card" id="user-1">
         <div class="user-header">
             <input type="text" id="name-1" placeholder="输入用户名" />
             <button class="name-select-btn" onclick="toggleNameSelector(1)">📝 选择名字</button>
-            <button class="old-new-btn" onclick="toggleOldNewBox(1)">🟣 新旧填入</button>
+            <button class="old-new-btn" onclick="addOldNewBox(1)">🟣 新旧香</button>
         </div>
-
-        <textarea id="bets-1" placeholder="请输入投注内容，例如：
-03.04.05.06.07.08.09.10.11.12.13.14.27.28.29.30.31.32.33.34.35.36.37.45:各3块新澳门
-1一头各数3块新（解析1）
-二尾各数三块（解析2尾号码）"></textarea>
-
-        <div id="old-new-box-1" class="old-new-box">
-            <textarea id="old-new-content-1" class="old-new-textarea" placeholder="【新旧专用】
-示例：
-09各10
-03.13.20各5新旧"></textarea>
-        </div>
-
         <div id="name-selector-wrapper-1" class="name-selector-wrapper">
             <div class="name-selector">
                 <button onclick="selectName('name-1', '黄完')">黄完</button>
@@ -353,12 +357,19 @@
                 <button onclick="selectName('name-1', '琴姑')">琴姑</button>
             </div>
         </div>
+        <textarea id="bets-1" placeholder="请输入投注内容，例如：
+03.04.05.06.07.08.09.10.11.12.13.14.27.28.29.30.31.32.33.34.35.36.37.45:各3块新澳门
+1一头各数3块新（解析1）
+二尾各数三块（解析2尾号码）
+猴各10香
+05各5新旧香
+平特一肖 马-100米
+平特 猴各200新"></textarea>
     </div>
 </div>
-
 <div class="winning-inputs">
     <div class="winning-group">
-        <label>🎲 开奖号码设置（1-49）(47倍)</label>
+        <label>🎲 开奖号码设置（1-49）</label>
         <div class="winning-input-row">
             <div class="winning-type macau-bg">新澳</div>
             <input type="number" id="winning-macau" min="1" max="49" placeholder="请输入新澳开奖号码" />
@@ -373,14 +384,12 @@
         </div>
     </div>
 </div>
-
 <div class="action-buttons">
     <button onclick="addUser()">➕ 添加用户</button>
     <button onclick="showResults()">🏆 中奖结果</button>
     <button onclick="showHistory()">📚 历史记录</button>
-    <button onclick="saveRecord()">💾 保存记录</button>
+    <button onclick="saveRecord()">💾 手动保存记录</button>
 </div>
-
 <div id="results-container">
     <div class="header">
         <h2>🏆 中奖结果</h2>
@@ -390,7 +399,6 @@
     <div id="results-inner"></div>
     <button onclick="hideResults()" class="back">⬅️ 隐藏结果</button>
 </div>
-
 <div id="history-container" class="history-section" style="display: none;">
     <div class="header">
         <h2>📚 历史记录</h2>
@@ -399,19 +407,32 @@
     <div id="history-list"></div>
     <button onclick="hideHistory()" class="back">⬅️ 返回</button>
 </div>
-
 <script>
-// ===================== 1. 新旧框显示/隐藏 =====================
-function toggleOldNewBox(userId) {
-    const box = document.getElementById(`old-new-box-${userId}`);
-    if (box.style.display === 'block') {
-        box.style.display = 'none';
-    } else {
-        box.style.display = 'block';
-        document.getElementById(`old-new-content-${userId}`).focus();
-    }
+// ===================== 1. 新旧香框管理（删除按钮在外侧右上角） =====================
+window.oldNewBoxCount = {};
+function addOldNewBox(userId) {
+    if (!window.oldNewBoxCount[userId]) window.oldNewBoxCount[userId] = 0;
+    window.oldNewBoxCount[userId]++;
+    const boxId = window.oldNewBoxCount[userId];
+    const userCard = document.getElementById(`user-${userId}`);
+    const newBox = document.createElement('div');
+    newBox.id = `old-new-box-${userId}-${boxId}`;
+    newBox.className = 'old-new-box';
+    newBox.innerHTML = `
+        <textarea id="old-new-content-${userId}-${boxId}" class="old-new-textarea" placeholder="【新旧香专用】
+示例：
+09各10
+03.13.20各5
+最后一行加后缀，整框自动添加：
+新/旧/香/新旧/新香/旧香/新旧香/香港"></textarea>
+        <button class="delete" style="position: absolute; top: -32px; right: 0; padding: 6px 12px; font-size: 14px;" onclick="deleteOldNewBox('old-new-box-${userId}-${boxId}')">🗑️ 删除</button>
+    `;
+    userCard.appendChild(newBox);
 }
-
+function deleteOldNewBox(boxId) {
+    const box = document.getElementById(boxId);
+    if (box) box.remove();
+}
 // ===================== 2. 名字选择器折叠/展开 =====================
 function toggleNameSelector(userId) {
     const wrapper = document.getElementById(`name-selector-wrapper-${userId}`);
@@ -421,14 +442,11 @@ function toggleNameSelector(userId) {
         wrapper.style.display = 'block';
     }
 }
-
-// 选择名字后自动折叠名字列表
 function selectName(inputId, name) {
     document.getElementById(inputId).value = name;
     const userId = inputId.split('-')[1];
     toggleNameSelector(userId);
 }
-
 // ===================== 3. 展开/折叠投注详情 =====================
 function toggleUserTable(index) {
     const table = document.getElementById(`bet-table-${index}`);
@@ -441,8 +459,7 @@ function toggleUserTable(index) {
         btn.innerHTML = '展开 🔽';
     }
 }
-
-// 1. 基础数据映射
+// ===================== 4. 基础数据映射 =====================
 const CHINESE_NUM_MAP = {
     '零':0, '一':1, '二':2, '三':3, '四':4, '五':5,
     '六':6, '七':7, '八':8, '九':9, '十':10, '两':2, '俩':2
@@ -499,13 +516,25 @@ const COLOR_PARITY = {
     绿单: [5,11,17,21,27,33,39,43,49],
     绿双: [6,16,22,28,32,38,44]
 };
-
-// 2. 全局变量
+// ===================== 5. 平特专用工具函数 =====================
+function getZodiacByNum(num) {
+    for (const [zodiac, nums] of Object.entries(ZODIAC)) {
+        if (nums.includes(num)) return zodiac;
+    }
+    return null;
+}
+function getPingTeZodiacs(text) {
+    const zodiacs = [];
+    for (const [zodiac] of Object.entries(ZODIAC)) {
+        if (text.includes(zodiac)) zodiacs.push(zodiac);
+    }
+    return zodiacs;
+}
+// ===================== 6. 全局变量 =====================
 let userCount = 1;
 let currentResults = null;
 let editingRecordId = null;
-
-// 3. 工具函数
+// ===================== 7. 工具函数 =====================
 function charToNum(char) {
     if (!isNaN(parseInt(char))) return parseInt(char);
     return CHINESE_NUM_MAP[char] !== undefined ? CHINESE_NUM_MAP[char] : null;
@@ -523,8 +552,7 @@ function chineseToNumber(chineseStr) {
     }
     return (result + temp) || 1;
 }
-
-// 4. 历史记录功能
+// ===================== 8. 历史记录功能 =====================
 function initHistory() {
     if (!localStorage.getItem('bettingHistory')) {
         localStorage.setItem('bettingHistory', JSON.stringify([]));
@@ -536,9 +564,9 @@ function getHistory() {
 function saveHistory(history) {
     localStorage.setItem('bettingHistory', JSON.stringify(history));
 }
-function saveRecord() {
+function saveRecord(isAuto = false) {
     if (!currentResults) {
-        alert('请先计算中奖结果！');
+        if (!isAuto) alert('请先计算中奖结果！');
         return;
     }
     const history = getHistory();
@@ -556,7 +584,7 @@ function saveRecord() {
         history.unshift(record);
     }
     saveHistory(history);
-    alert(editingRecordId ? '记录更新成功！' : '记录保存成功！');
+    if (!isAuto) alert(editingRecordId ? '记录更新成功！' : '记录保存成功！');
     editingRecordId = null;
 }
 function deleteRecord(id) {
@@ -588,14 +616,7 @@ function editRecord(id) {
             <div class="user-header">
                 <input type="text" id="name-${uId}" value="${user.name}" placeholder="输入用户名" />
                 <button class="name-select-btn" onclick="toggleNameSelector(${uId})">📝 选择名字</button>
-                <button class="old-new-btn" onclick="toggleOldNewBox(${uId})">🟣 新旧填入</button>
-            </div>
-            <textarea id="bets-${uId}" placeholder="输入投注内容">${user.bets}</textarea>
-            <div id="old-new-box-${uId}" class="old-new-box">
-                <textarea id="old-new-content-${uId}" class="old-new-textarea" placeholder="【新旧专用】
-示例：
-09各10
-03.13.20各5新旧"></textarea>
+                <button class="old-new-btn" onclick="addOldNewBox(${uId})">🟣 新旧香</button>
             </div>
             <div id="name-selector-wrapper-${uId}" class="name-selector-wrapper">
                 <div class="name-selector">
@@ -613,6 +634,7 @@ function editRecord(id) {
                     <button onclick="selectName('name-${uId}', '琴姑')">琴姑</button>
                 </div>
             </div>
+            <textarea id="bets-${uId}" placeholder="输入投注内容">${user.bets}</textarea>
         `;
         container.appendChild(userCard);
     });
@@ -674,14 +696,7 @@ function loadRecord(id) {
             <div class="user-header">
                 <input type="text" id="name-${uId}" value="${user.name}" placeholder="输入用户名" />
                 <button class="name-select-btn" onclick="toggleNameSelector(${uId})">📝 选择名字</button>
-                <button class="old-new-btn" onclick="toggleOldNewBox(${uId})">🟣 新旧填入</button>
-            </div>
-            <textarea id="bets-${uId}" placeholder="输入投注内容">${user.bets}</textarea>
-            <div id="old-new-box-${uId}" class="old-new-box">
-                <textarea id="old-new-content-${uId}" class="old-new-textarea" placeholder="【新旧专用】
-示例：
-09各10
-03.13.20各5新旧"></textarea>
+                <button class="old-new-btn" onclick="addOldNewBox(${uId})">🟣 新旧香</button>
             </div>
             <div id="name-selector-wrapper-${uId}" class="name-selector-wrapper">
                 <div class="name-selector">
@@ -699,6 +714,7 @@ function loadRecord(id) {
                     <button onclick="selectName('name-${uId}', '琴姑')">琴姑</button>
                 </div>
             </div>
+            <textarea id="bets-${uId}" placeholder="输入投注内容">${user.bets}</textarea>
         `;
         container.appendChild(userCard);
     });
@@ -709,8 +725,7 @@ function loadRecord(id) {
 function hideHistory() {
     document.getElementById('history-container').style.display = 'none';
 }
-
-// 5. 添加用户
+// ===================== 9. 添加用户 =====================
 function addUser() {
     userCount++;
     const container = document.getElementById('users-container');
@@ -721,14 +736,7 @@ function addUser() {
         <div class="user-header">
             <input type="text" id="name-${userCount}" placeholder="输入用户名" />
             <button class="name-select-btn" onclick="toggleNameSelector(${userCount})">📝 选择名字</button>
-            <button class="old-new-btn" onclick="toggleOldNewBox(${userCount})">🟣 新旧填入</button>
-        </div>
-        <textarea id="bets-${userCount}" placeholder="输入投注内容"></textarea>
-        <div id="old-new-box-${userCount}" class="old-new-box">
-            <textarea id="old-new-content-${userCount}" class="old-new-textarea" placeholder="【新旧专用】
-示例：
-09各10
-03.13.20各5新旧"></textarea>
+            <button class="old-new-btn" onclick="addOldNewBox(${userCount})">🟣 新旧香</button>
         </div>
         <div id="name-selector-wrapper-${userCount}" class="name-selector-wrapper">
             <div class="name-selector">
@@ -746,11 +754,11 @@ function addUser() {
                 <button onclick="selectName('name-${userCount}', '琴姑')">琴姑</button>
             </div>
         </div>
+        <textarea id="bets-${userCount}" placeholder="输入投注内容"></textarea>
     `;
     container.appendChild(newUserCard);
 }
-
-// 6. 生肖显示工具
+// ===================== 10. 生肖显示工具 =====================
 function getZodiacLabel(num) {
     for (const [zodiac, nums] of Object.entries(ZODIAC)) {
         if (nums.includes(num)) return `${zodiac}${num}`;
@@ -770,8 +778,7 @@ function getTodayZodiacDisplay(winningNumbers) {
     if (winningNumbers.hongkong) parts.push(`香港${getZodiacDisplay(winningNumbers.hongkong)}`);
     return parts.join(' ') || '无开奖号码';
 }
-
-// 7. 提取数字
+// ===================== 11. 提取数字 =====================
 function getDigits(text) {
     const digits = [];
     for (let i=0; i<text.length; i++) {
@@ -792,39 +799,30 @@ function getDigits(text) {
     }
     return digits;
 }
-
-// 8. 投注拆分：新增支持「XX-XX米」「XX.XX米」格式
+// ===================== 12. 投注拆分 =====================
 function splitBetsByAmount(text) {
-    // 1. 统一换行符，按换行拆分成独立行，保留行结构（不破坏新旧填入的后缀逻辑）
     const lines = text
         .replace(/\r\n|\r|\u2028|\u2029/g, '\n')
         .split('\n')
         .map(line => line.trim())
         .filter(line => line);
-
-    // 2. 对每一行，拆分行内用空格分隔的投注项，支持两种格式：「XX各XX」、「XX[-.]XX米」
     const allBets = [];
-    // 正则匹配：支持「各XX」格式，和「-数字米」「.数字米」格式
-    const betRegex = /(?:^|\s)(.*?(?:各(?:数)?\s*(?:\d+|[一二三四五六七八九十两俩百]+)|[-.]\d+\s*米)[^\s]*)(?=\s|$)/g;
-
+    const betRegex = /(?:^|\s)(.*?(?:平特.*?[-.]\d+\s*米|各(?:数)?\s*(?:\d+|[一二三四五六七八九十两俩百]+)|[-.]\d+\s*米)[^\s]*)(?=\s|$)/g;
     lines.forEach(line => {
         let match;
-        // 循环提取当前行内的所有投注项
         while ((match = betRegex.exec(line)) !== null) {
             const betItem = match[1].trim();
             if (betItem) allBets.push(betItem);
         }
     });
-
     return allBets;
 }
-
-// 9. 投注类型判断
+// ===================== 13. 投注类型判断 =====================
 function getBetType(line) {
     const clean = line.trim();
-    if (/香港|香(?![港澳]|口|水)/.test(clean)) return 'hongkong';
-    if (/澳门|新澳|新/.test(clean)) return 'macau';
     if (/旧/.test(clean)) return 'old-macau';
+    if (/澳门|新澳|新/.test(clean)) return 'macau';
+    if (/香港|香(?![口|水])/.test(clean)) return 'hongkong';
     return 'normal';
 }
 function getBetTypeLabel(betType) {
@@ -835,8 +833,7 @@ function getBetTypeLabel(betType) {
         default: return '<span class="bet-type normal">普通</span>';
     }
 }
-
-// 10. 尾数/头数解析
+// ===================== 14. 尾数/头数解析 =====================
 function parseTailNumbers(text) {
     const nums = [];
     getDigits(text).forEach(d => {
@@ -852,67 +849,55 @@ function parseHeadNumbers(text) {
     return nums;
 }
 
-// 11. 提取金额：新增支持「-XX米」「.XX米」格式
+// ========== 金额提取和文本清理函数（修复结尾句号问题） ==========
 function extractAmount(line) {
-    // 新增：匹配「-数字米」「.数字米」格式的金额，比如33-60米、14.60米
-    let match = line.match(/[-.]\s*(\d+)\s*米/i);
+    const cleanLine = line.trim().replace(/[.。,，]+$/, '');
+    let match = cleanLine.match(/[-.]\s*(\d+)\s*米/i);
     if (match) return parseInt(match[1]);
-    // 原有逻辑完全保留
-    match = line.match(/(包|各(?:数)?)+\s*([一二三四五六七八九十两俩百]+)\s*(?:米|块|元|门)?/i);
+    match = cleanLine.match(/(包|各(?:数)?)+\s*([一二三四五六七八九十两俩百]+)\s*(?:米|块|元|门)?/i);
     if (match) return chineseToNumber(match[2]);
-    match = line.match(/(包|各(?:数)?)+\s*(\d+)\s*(?:米|块|元|门)?(?=\s|$|新|旧|香港|澳门|头|尾)/i);
+    match = cleanLine.match(/(包|各(?:数)?)+\s*(\d+)\s*(?:米|块|元|门)?(?=\s|$|新|旧|香|港|澳|门|头|尾|.)/i);
     if (match) return parseInt(match[2]);
-    match = line.match(/各(?:数)?\s*(\d+)\s*(?:米|块|元|门)/i) || line.match(/(\d+)\s*(?:米|块|元|门)(?!\d)/);
+    match = cleanLine.match(/各(?:数)?\s*(\d+)\s*(?:米|块|元|门)/i) || cleanLine.match(/(\d+)\s*(?:米|块|元|门)(?!\d)/);
     if (match) return parseInt(match[1]);
-    match = line.match(/各(?:数)?\s*([一二三四五六七八九十两俩]+)/i);
+    match = cleanLine.match(/各(?:数)?\s*([一二三四五六七八九十两俩]+)/i);
     if (match) return chineseToNumber(match[1]);
     return 1;
 }
-
-// 12. 提取单位：强制所有单位显示为「元」
 function extractUnit(line) {
     return '元';
 }
-
-// 13. 移除金额和投注类型：新增去掉「-XX米」「.XX米」格式的金额
 function getTextExcludingAmount(text) {
-    let result = text;
-    // 新增：去掉「-数字米」「.数字米」格式的金额部分
+    let result = text.trim().replace(/[.。,，]+$/, '');
     result = result.replace(/[-.]\s*\d+\s*米/gi, '');
-    // 原有逻辑完全保留
-    result = result.replace(/包\s*[一二三四五六七八九十两俩]+\s*(?:米|块|元|门)?/gi, '');
-    result = result.replace(/各(?:数)?\s*[一二三四五六七八九十两俩]+\s*(?:米|块|元|门)?/gi, '');
-    result = result.replace(/(包|各(?:数)?)+\s*\d+\s*(?:米|块|元|门)?(?=\s|$|新|旧|香港|澳门)/gi, '');
+    result = result.replace(/包\s*[一二三四五六七八九十两俩百]+\s*(?:米|块|元|门)?/gi, '');
+    result = result.replace(/各(?:数)?\s*[一二三四五六七八九十两俩百]+\s*(?:米|块|元|门)?/gi, '');
+    result = result.replace(/(包|各(?:数)?)+\s*\d+\s*(?:米|块|元|门)?(?=\s|$|新|旧|香|港|澳|门|头|尾|.)/gi, '');
     result = result.replace(/(\d+)\s*(?:米|块|元|门)(?!\d)/g, '');
-    result = result.replace(/新澳门|澳门|新澳|旧澳|香港|新旧|新香|旧香|新旧香/gi, '').trim();
+    result = result.replace(/新旧香|新香|旧香|新旧|香港|澳门|新澳|旧澳|新|旧|香|港|澳/gi, '').trim();
     return result;
 }
 
-// 14. 号码解析：新增支持「大数/小数」规则，原有逻辑完全保留
+// ===================== 18. 号码解析 =====================
 function parseNumbers(text) {
     const cleanedText = getTextExcludingAmount(text);
     let nums = [];
-
-    // 新增：处理大数/小数规则
     if (cleanedText.includes('大数')) {
-        // 大数：25-49
         for (let i=25; i<=49; i++) nums.push(i);
     } else if (cleanedText.includes('小数')) {
-        // 小数：1-24
         for (let i=1; i<=24; i++) nums.push(i);
     } 
-    // 原有逻辑：处理尾/头
     else if (cleanedText.includes('尾')) {
         nums = parseTailNumbers(cleanedText);
     } else if (cleanedText.includes('头')) {
         nums = parseHeadNumbers(cleanedText);
     } 
-    // 原有逻辑：处理普通号码、生肖、波色等
     else {
         const formatText = cleanedText
             .replace(/-/g, '.')
             .replace(/\s+/g, '.')
             .replace(/\.+/g, '.')
+            .replace(/^\./, '')
             .replace(/\.$/, '');
         const numMatches = formatText.match(/\b\d{1,2}\b/g);
         if (numMatches) {
@@ -938,8 +923,7 @@ function parseNumbers(text) {
     }
     return nums;
 }
-
-// 15. 开奖号码获取
+// ===================== 19. 开奖号码获取 =====================
 function getWinningNumbers() {
     const winning = {};
     const macau = parseInt(document.getElementById('winning-macau').value.trim());
@@ -950,8 +934,7 @@ function getWinningNumbers() {
     if (!isNaN(hongkong) && hongkong >=1 && hongkong <=49) winning.hongkong = hongkong;
     return winning;
 }
-
-// 16. 中奖金额计算
+// ===================== 20. 中奖金额计算 =====================
 function getWinningNumByBetType(betType, winning) {
     switch(betType) {
         case 'macau': return winning.macau;
@@ -961,9 +944,15 @@ function getWinningNumByBetType(betType, winning) {
         default: return null;
     }
 }
-function getWinAmount(betType, perBet, nums, winning) {
+function getWinAmount(betType, perBet, nums, winning, isPingTe = false, pingTeZodiacs = []) {
     const winNum = getWinningNumByBetType(betType, winning);
     if (!winNum) return 0;
+    if (isPingTe) {
+        const winZodiac = getZodiacByNum(winNum);
+        if (!winZodiac || !pingTeZodiacs.includes(winZodiac)) return 0;
+        const odds = winZodiac === '马' ? 1.8 : 2;
+        return perBet * odds;
+    }
     const winCount = nums.filter(num => num === winNum).length;
     return winCount * perBet * 47;
 }
@@ -975,17 +964,60 @@ function getWinningDisplay(winning) {
     return parts.join(' | ') || '无有效开奖号码';
 }
 
-// 17. 新旧投注处理
+// ========== 【核心修复：整框自动添加后缀函数，支持行首+行尾后缀】 ==========
+function applySuffixToAllLines(lines) {
+    const suffixRegexEnd = /(新旧香|新香|旧香|新旧|香港|新|旧|香)$/; // 匹配行尾后缀
+    const suffixRegexStart = /^(新旧香|新香|旧香|新旧|香港|新|旧|香)/; // 匹配行首后缀
+    let suffix = '';
+    const validLines = lines.filter(l => l.trim());
+    if (validLines.length === 0) return [];
+
+    // 优先级1：先找最后一行的结尾后缀（保持原有习惯）
+    for (let i = validLines.length - 1; i >= 0; i--) {
+        const line = validLines[i].trim();
+        const match = line.match(suffixRegexEnd);
+        if (match) {
+            suffix = match[1];
+            break;
+        }
+    }
+
+    // 优先级2：没找到结尾后缀，再找第一行的开头后缀
+    if (!suffix) {
+        const firstLine = validLines[0].trim();
+        const match = firstLine.match(suffixRegexStart);
+        if (match) {
+            suffix = match[1];
+        }
+    }
+
+    // 没找到后缀，直接返回原行
+    if (!suffix) return validLines;
+
+    // 给所有行统一添加后缀，同时移除原有前后缀，避免重复
+    return validLines.map(line => {
+        let cleanLine = line.trim();
+        // 移除开头的后缀
+        cleanLine = cleanLine.replace(suffixRegexStart, '').trim();
+        // 移除结尾的后缀
+        cleanLine = cleanLine.replace(suffixRegexEnd, '').trim();
+        // 统一在结尾添加后缀
+        return cleanLine + suffix;
+    });
+}
+
+// ===================== 22. 新旧投注处理 =====================
 function processNewOldBets(lines) {
     const processed = [];
     lines.forEach(line => {
         const trimLine = line.trim();
         if (!trimLine) return;
+        const isPingTe = trimLine.includes('平特');
         let hasNew = /新|新旧|新香|新旧香/.test(trimLine);
         let hasOld = /旧|新旧|旧香|新旧香/.test(trimLine);
-        let hasXiang = /香|新香|旧香|新旧香/.test(trimLine);
+        let hasXiang = /香|新香|旧香|新旧香|香港/.test(trimLine);
         
-        let base = trimLine.replace(/新旧|新香|旧香|新旧香/g, '').trim();
+        let base = trimLine.replace(/新旧香|新香|旧香|新旧|香港|澳门|新澳|旧澳|新|旧|香|港|澳/g, '').trim();
         
         if (hasNew) {
             processed.push({
@@ -993,7 +1025,8 @@ function processNewOldBets(lines) {
                 betType: 'macau',
                 originalLine: trimLine,
                 isSplit: true,
-                splitType: '新澳'
+                splitType: '新澳',
+                isPingTe: isPingTe
             });
         }
         if (hasOld) {
@@ -1002,7 +1035,8 @@ function processNewOldBets(lines) {
                 betType: 'old-macau',
                 originalLine: trimLine,
                 isSplit: true,
-                splitType: '旧澳'
+                splitType: '旧澳',
+                isPingTe: isPingTe
             });
         }
         if (hasXiang) {
@@ -1011,7 +1045,8 @@ function processNewOldBets(lines) {
                 betType: 'hongkong',
                 originalLine: trimLine,
                 isSplit: true,
-                splitType: '香港'
+                splitType: '香港',
+                isPingTe: isPingTe
             });
         }
         if (!hasNew && !hasOld && !hasXiang) {
@@ -1019,33 +1054,14 @@ function processNewOldBets(lines) {
                 line: trimLine,
                 betType: null,
                 originalLine: trimLine,
-                isSplit: false
+                isSplit: false,
+                isPingTe: isPingTe
             });
         }
     });
     return processed;
 }
-
-// 给所有行加上后缀
-function applySuffixToAllLines(lines) {
-    let suffix = '';
-    for (let i = lines.length - 1; i >= 0; i--) {
-        const line = lines[i].trim();
-        const match = line.match(/(新旧|新香|旧香|新旧香)$/);
-        if (match) {
-            suffix = match[1];
-            break;
-        }
-    }
-    if (!suffix) return lines.filter(l => l.trim());
-    return lines.map(l => {
-        let line = l.trim();
-        if (!line || line.endsWith(suffix)) return line;
-        return line + suffix;
-    }).filter(l => l.trim());
-}
-
-// 18. 显示结果
+// ===================== 23. 显示结果（修改水钱位置和显示） =====================
 function showResults() {
     try {
         const winning = getWinningNumbers();
@@ -1060,15 +1076,17 @@ function showResults() {
             const name = document.getElementById(`name-${id}`).value.trim() || `用户${id}`;
             const bets = document.getElementById(`bets-${id}`).value.trim();
             
-            const oldNewTa = document.getElementById(`old-new-content-${id}`);
-            if (oldNewTa && oldNewTa.value.trim()) {
-                const extra = oldNewTa.value.trim();
-                const finalLines = applySuffixToAllLines(extra.split('\n'));
-                const extraText = finalLines.join('\n');
-                const mainText = bets ? bets + '\n' + extraText : extraText;
-                userData.push({ name, bets: mainText });
-            } else {
-                if (bets) userData.push({ name, bets });
+            let extraText = '';
+            document.querySelectorAll(`[id^="old-new-content-${id}-"]`).forEach(ta => {
+                const content = ta.value.trim();
+                if (content) {
+                    const finalLines = applySuffixToAllLines(content.split('\n'));
+                    extraText += '\n' + finalLines.join('\n');
+                }
+            });
+            const mainText = (bets || '') + extraText;
+            if (mainText.trim()) {
+                userData.push({ name, bets: mainText.trim() });
             }
         });
         
@@ -1096,15 +1114,19 @@ function showResults() {
             processedLines.forEach(item => {
                 const line = item.line;
                 const betType = item.betType || getBetType(line);
+                const isPingTe = item.isPingTe;
+                const pingTeZodiacs = isPingTe ? getPingTeZodiacs(line) : [];
                 const perBet = extractAmount(line);
                 const unit = extractUnit(line);
                 const nums = parseNumbers(line);
-                if (nums.length === 0) return;
+                if (nums.length === 0 && !isPingTe) return;
                 
-                const cost = nums.length * perBet;
-                const winMoney = getWinAmount(betType, perBet, nums, winning);
+                const winNum = getWinningNumByBetType(betType, winning);
+                const winZodiac = winNum ? getZodiacByNum(winNum) : null;
+                const cost = isPingTe ? perBet : (nums.length * perBet);
+                const winMoney = getWinAmount(betType, perBet, nums, winning, isPingTe, pingTeZodiacs);
                 const isWin = winMoney > 0;
-                const winBet = isWin ? nums.filter(n => n === getWinningNumByBetType(betType, winning)).length * perBet : 0;
+                const winBet = isWin ? (isPingTe ? perBet : (nums.filter(n => n === winNum).length * perBet)) : 0;
                 
                 userCost += cost;
                 userWin += winMoney;
@@ -1112,12 +1134,12 @@ function showResults() {
                 
                 const lineDisplay = item.isSplit ? `<span title="原投注: ${item.originalLine}">${line}</span>` : line;
                 const headTailDesc = line.includes('头') ? `（头数: ${getDigits(line).join(', ')}）` : (line.includes('尾') ? `（尾数: ${getDigits(line).join(', ')}）` : '');
-                const markedNums = nums.map(num => num === getWinningNumByBetType(betType, winning) ? `<span class="money-red">${num}</span>` : num).join(', ');
+                const markedNums = nums.map(num => num === winNum ? `<span class="money-red">${num}</span>` : num).join(', ');
                 
                 betHtml += `
                     <tr>
                         <td>${lineDisplay} ${getBetTypeLabel(betType)}</td>
-                        <td>${nums.length}</td>
+                        <td>${isPingTe ? pingTeZodiacs.length : nums.length}</td>
                         <td><span class="money-blue">${cost} ${unit}</span></td>
                         <td class="${isWin ? 'win' : ''}"><span class="money-red">${isWin ? winMoney + ' 元' : '-'}</span></td>
                     </tr>
@@ -1129,9 +1151,15 @@ function showResults() {
                         </tr>
                     `;
                 }
+                let debugInfo = '';
+                if (isPingTe) {
+                    debugInfo = `【平特投注】生肖: ${pingTeZodiacs.join(',')} | 投注金额: ${perBet}${unit} | 开奖号: ${winNum || '无'} (${winZodiac || '无生肖'}) | 赔率: ${winZodiac === '马' ? '1.8倍' : '2倍'}`;
+                } else {
+                    debugInfo = `解析号码: ${markedNums} ${headTailDesc}| 单注: ${perBet}${unit} | 开奖号: ${winNum || '无'}`;
+                }
                 betHtml += `
                     <tr>
-                        <td colspan="4" class="debug-info">解析号码: ${markedNums} ${headTailDesc}| 单注: ${perBet}${unit} | 开奖号: ${getWinningNumByBetType(betType, winning) || '无'}</td>
+                        <td colspan="4" class="debug-info">${debugInfo}</td>
                     </tr>
                 `;
             });
@@ -1156,7 +1184,7 @@ function showResults() {
                     <table class="bet-table" id="bet-table-${idx}" style="display:none;">
                         <tr>
                             <th>内容</th>
-                            <th>号码数量</th>
+                            <th>数量</th>
                             <th>投入</th>
                             <th>中奖</th>
                         </tr>
@@ -1172,11 +1200,15 @@ function showResults() {
             resultInner.innerHTML += userHtml;
         });
         
+        // 核心：水钱计算
         const totalProfit = totalWin - totalCost;
+        const waterMoney = totalCost * 0.03;
+        
+        // 修改后的全体汇总，水钱移到总投入右侧
         resultInner.innerHTML += `
             <div class="total" style="margin-top:20px;">
                 📊 全体汇总：<br>
-                总投入：<span class="money-blue">${totalCost} 元</span><br>
+                总投入：<span class="money-blue">${totalCost} 元</span> | 水钱：<span class="money-blue">${waterMoney} 元</span><br>
                 总中奖：<span class="money-red">${totalWin} 元</span><br>
                 总净利润：<span class="${totalProfit>=0 ? 'profit-positive' : 'profit-negative'}">${totalProfit>=0 ? '+' : ''}${totalProfit}</span> 元<br>
                 <span class="total-bet-win">累计中奖投注：<span class="money-red">${totalWinBet} 元</span></span><br>
@@ -1217,20 +1249,20 @@ function showResults() {
                 totalCost: totalCost,
                 totalWin: totalWin,
                 totalProfit: totalProfit,
-                totalWinBet: totalWinBet
+                totalWinBet: totalWinBet,
+                waterMoney: waterMoney
             }
         };
+        saveRecord(true);
     } catch (error) {
         alert('计算出错：' + error.message);
         console.error('错误详情：', error);
     }
 }
-
-// 19. 辅助函数
+// ===================== 24. 辅助函数 =====================
 function hideResults() {
     document.getElementById('results-container').style.display = 'none';
 }
-
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
     initHistory();
